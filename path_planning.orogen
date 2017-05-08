@@ -1,0 +1,22 @@
+name "path_planning"
+version "0.1"
+
+using_library "path_planning"
+
+import_types_from "path_planningTypes.hpp"
+import_types_from "base"
+
+task_context "Task" do
+    needs_configuration
+
+    property "config_value", "/std/string"
+
+    input_port("pose", "base/samples/RigidBodyState").
+        doc "Position and orientation of the Robot" 
+
+    output_port("trajectory", "/std/vector</base/Waypoint>").
+        doc "Trajectory the robot should follow"
+
+    periodic 0.1
+end
+
