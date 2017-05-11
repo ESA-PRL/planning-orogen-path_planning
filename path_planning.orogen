@@ -1,3 +1,4 @@
+#!/usr/bin/env ruby
 name "path_planning"
 version "0.1"
 
@@ -13,6 +14,9 @@ task_context "Task" do
 
     input_port("pose", "base/samples/RigidBodyState").
         doc "Position and orientation of the Robot" 
+
+    input_port("goalWaypoint", "/base/Waypoint").
+        doc "Waypoint of the desired goal" 
 
     output_port("trajectory", "/std/vector</base/Waypoint>").
         doc "Trajectory the robot should follow"

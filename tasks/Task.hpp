@@ -4,29 +4,30 @@
 #define PATH_PLANNING_TASK_TASK_HPP
 
 #include "path_planning/TaskBase.hpp"
+#include "../../path_planning/PathPlanning.hpp"
+#include "fstream"
 
+using namespace PathPlanning_lib;
+ 
 namespace path_planning {
 
-    /*! \class Task 
-     * \brief The task context provides and requires services. It uses an ExecutionEngine to perform its functions.
-     * Essential interfaces are operations, data flow ports and properties. These interfaces have been defined using the oroGen specification.
-     * In order to modify the interfaces you should (re)use oroGen and rely on the associated workflow.
-     * 
-     * \details
-     * The name of a TaskContext is primarily defined via:
-     \verbatim
-     deployment 'deployment_name'
-         task('custom_task_name','path_planning::Task')
-     end
-     \endverbatim
-     *  It can be dynamically adapted when the deployment is called with a prefix argument. 
-     */
+    enum PathPlanningState {INITIAL, WAITING_GOAL, WAITING_POSE, FINDING_PATH, END};
+
     class Task : public TaskBase
     {
 	friend class TaskBase;
     protected:
-
-
+        PathPlanningState state;
+        PathPlanning_lib::PathPlanning planner;
+        base::samples::RigidBodyState pose;
+        base::Waypoint goalWaypoint;
+        base::Waypoint wRover;
+        std::vector<base::Waypoint> trajectory;
+        double Nraw, Ncol;
+        std::vector< std::vector<double> > elevationMatrix = readMatrixFile("../terrainData/crater/elevation_map.txt", Nraw, Ncol);
+        std::vector< std::vector<double> > frictionMatrix = readMatrixFile("../terrainData/crater/crater_costMap.txt", Nraw, Ncol);
+        std::vector< std::vector<double> > slipMatrix = readMatrixFile("../terrainData/crater/slip_map.txt", Nraw, Ncol);
+        std::vector< std::vector<double> > riskMatrix = readMatrixFile("../terrainData/crater/risk_map.txt", Nraw, Ncol);
 
     public:
         /** TaskContext constructor for Task
@@ -85,12 +86,8 @@ namespace path_planning {
          */
         void updateHook();
 
-        /** This hook is called by Orocos when the component is in the
-         * RunTimeError state, at each activity step. See the discussion in
-         * updateHook() about triggering options.
-         *
-         * Call recover() to go back in the Runtime state.
-         */
+        std::vector< std::vector<double> > readMatrixFile(std::string map_file, double& Nrow, double& Ncol);
+
         void errorHook();
 
         /** This hook is called by Orocos when the state machine transitions
