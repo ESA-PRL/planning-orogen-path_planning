@@ -36,10 +36,16 @@ bool Task::startHook()
 {
     if (! TaskBase::startHook())
         return false;
-    elevationMatrix = readMatrixFile("../terrainData/crater/elevation_map.txt", Nraw, Ncol);
-    frictionMatrix = readMatrixFile("../terrainData/crater/crater_costMap.txt", Nraw, Ncol);
-    slipMatrix = readMatrixFile("../terrainData/crater/slip_map.txt", Nraw, Ncol);
-    riskMatrix = readMatrixFile("../terrainData/crater/risk_map.txt", Nraw, Ncol);
+
+    //elevationMatrix = readMatrixFile("../terrainData/crater/elevation_map.txt", Nraw, Ncol);
+    //frictionMatrix = readMatrixFile("../terrainData/crater/crater_costMap.txt", Nraw, Ncol);
+    //slipMatrix = readMatrixFile("../terrainData/crater/slip_map.txt", Nraw, Ncol);
+    //riskMatrix = readMatrixFile("../terrainData/crater/risk_map.txt", Nraw, Ncol);
+
+    elevationMatrix = readMatrixFile("../terrainData/prl/prl_elevationMap.txt", Nraw, Ncol);
+    frictionMatrix = readMatrixFile("../terrainData/prl/prl_m1.txt", Nraw, Ncol);
+    slipMatrix = readMatrixFile("../terrainData/prl/prl_m1.txt", Nraw, Ncol);
+    riskMatrix = readMatrixFile("../terrainData/prl/prl_m1.txt", Nraw, Ncol);
     planner.initNodeMatrix(elevationMatrix, frictionMatrix, slipMatrix, riskMatrix);
     state = WAITING_GOAL;
     return true;
@@ -66,8 +72,7 @@ void Task::updateHook()
             wRover.position[0] = pose.position[0];
             wRover.position[1] = pose.position[1];
             wRover.position[2] = pose.position[2];
-            Eigen::Vector3d euler = pose.orientation.toRotationMatrix().eulerAngles(2, 1, 0);
-            wRover.heading = euler[0];
+            wRover.heading = pose.getYaw();
             std::cout<< "Rover at position (" << wRover.position[0] << "," << wRover.position[1] << "," << wRover.position[2] << ") with Heading "
                      << wRover.heading << " rad" << std::endl;
             state = FINDING_PATH;
@@ -76,11 +81,23 @@ void Task::updateHook()
 
     if (state == FINDING_PATH)
     {
+	wRover.position[0] = wRover.position[0] * 20;
+	wRover.position[1] = wRover.position[1] * 20;
+	wRover.position[2] = wRover.position[2] * 20;
+	goalWaypoint.position[0] = goalWaypoint.position[0] * 20;
+	goalWaypoint.position[1] = goalWaypoint.position[1] * 20;
+	goalWaypoint.position[2] = goalWaypoint.position[2] * 20;
+
         trajectory = planner.fastMarching(wRover,goalWaypoint);
         std::cout<< "Trajectory has " << trajectory.size() << " Waypoints" << std::endl;
         for (unsigned int i = 0; i<trajectory.size(); i++)
+	{
+	    trajectory[i].position[0] = trajectory[i].position[0]/20;
+	    trajectory[i].position[1] = trajectory[i].position[1]/20;
+	    trajectory[i].position[2] = trajectory[i].position[2]/20;
 	    std::cout << "Waypoint " << i << " -> Pos: (" << trajectory[i].position[0] << "," << trajectory[i].position[1] << ") Height: " << trajectory[i].position[2] 
                       << " Heading: " << trajectory[i].heading << std::endl;
+	}
         _trajectory.write(trajectory);
         state = END;
     }

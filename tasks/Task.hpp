@@ -24,10 +24,10 @@ namespace path_planning {
         base::Waypoint wRover;
         std::vector<base::Waypoint> trajectory;
         double Nraw, Ncol;
-        std::vector< std::vector<double> > elevationMatrix = readMatrixFile("../terrainData/crater/elevation_map.txt", Nraw, Ncol);
-        std::vector< std::vector<double> > frictionMatrix = readMatrixFile("../terrainData/crater/crater_costMap.txt", Nraw, Ncol);
-        std::vector< std::vector<double> > slipMatrix = readMatrixFile("../terrainData/crater/slip_map.txt", Nraw, Ncol);
-        std::vector< std::vector<double> > riskMatrix = readMatrixFile("../terrainData/crater/risk_map.txt", Nraw, Ncol);
+        std::vector< std::vector<double> > elevationMatrix;
+        std::vector< std::vector<double> > frictionMatrix;
+        std::vector< std::vector<double> > slipMatrix;
+        std::vector< std::vector<double> > riskMatrix;
 
     public:
         /** TaskContext constructor for Task
