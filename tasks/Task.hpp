@@ -4,7 +4,7 @@
 #define PATH_PLANNING_TASK_TASK_HPP
 
 #include "path_planning/TaskBase.hpp"
-#include "../../path_planning/PathPlanning.hpp"
+#include "../../path_planning/src/PathPlanning.hpp"
 #include "fstream"
 
 using namespace PathPlanning_lib;
