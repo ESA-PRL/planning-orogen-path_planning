@@ -16,7 +16,7 @@ Orocos.run 'locomotion_control::Task' => 'locomotion_control',
            'command_joint_dispatcher::Task' => 'command_joint_dispatcher',
            'ptu_control::Task' => 'ptu_control',
            'motion_translator::Task' => 'motion_translator',
-           'controldev::JoystickTask'=>'joystick' do
+           'vicon::Task' => 'vicon' do
 
   # setup exoter ptu_control
     puts "Setting up ptu_control"
@@ -66,23 +66,24 @@ Orocos.run 'locomotion_control::Task' => 'locomotion_control',
     locomotion_control.configure
     puts "done"
 
-    
+    puts "Setting up waypoint nav"
+    waypoint_navigation = Orocos.name_service.get 'waypoint_navigation'
+    Orocos.conf.apply(waypoint_navigation, ['default'], :override => true)
+    #waypoint_navigation.apply_conf_file("../../../../control/orogen/waypoint_navigation/config/waypoint_navigation::Task.yml", ["exoter"])
+    waypoint_navigation.configure
+    puts "done"
 
-    
+    # setup exoter wheel_walking_control
+    puts "Setting up wheel_walking_control"
+    wheel_walking_control = Orocos.name_service.get 'wheel_walking_control'
+    Orocos.conf.apply(wheel_walking_control, ['default'], :override => true)
+    wheel_walking_control.configure
+    puts "done"
 
-    
-
-  locomotion_switcher = Orocos.name_service.get 'locomotion_switcher'
-  locomotion_switcher.configure
-
-  # setup exoter wheel_walking_control
-  puts "Setting up wheel_walking_control"
-  wheel_walking_control = Orocos.name_service.get 'wheel_walking_control'
-  Orocos.conf.apply(wheel_walking_control, ['default'], :override => true)
-  wheel_walking_control.configure
-  puts "done"
-
-  
+    puts "Setting up locomotion_switcher"
+    locomotion_switcher = Orocos.name_service.get 'locomotion_switcher'
+    locomotion_switcher.configure
+    puts "done"
 
   puts "Connecting ports"
     
@@ -90,9 +91,9 @@ Orocos.run 'locomotion_control::Task' => 'locomotion_control',
     ptu_control.ptu_commands_out.connect_to               command_joint_dispatcher.ptu_commands
 
   # Connecting vicon outputs
-    vicon.pose_samples.connect_to.connect_to              path_planning.pose  
-    vicon.pose_samples.connect_to.pose.connect_to         waypoint_navigation.pose 
-    vicon.pose_samples.connect_to.pose.connect_to         locomotion_switcher.pose 
+    vicon.pose_samples.connect_to                         path_planning.pose
+    vicon.pose_samples.connect_to                         waypoint_navigation.pose
+    vicon.pose_samples.connect_to                         locomotion_switcher.pose
     #Find a way to give path planning the goal waypoint
 
   # Connecting path_planning outputs
