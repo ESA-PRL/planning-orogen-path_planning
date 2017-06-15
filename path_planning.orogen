@@ -21,6 +21,12 @@ task_context "Task" do
     output_port("trajectory", "/std/vector</base/Waypoint>").
         doc "Trajectory the robot should follow"
 
+    output_port("locomotionVector", "/std/vector< short int >").
+        doc "Locomotion Mode to use to arrive at each Waypoint"
+
+    output_port("plannerReady", "int").
+        doc "Ready to receive current pose and goal"
+
     periodic 0.1
 end
 

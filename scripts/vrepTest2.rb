@@ -31,6 +31,7 @@ Orocos.run 'locomotion_control::Task' => 'locomotion_control',
   simulation_vrep.pose.connect_to         path_planning.pose  
   simulation_vrep.pose.connect_to         waypoint_navigation.pose  
   simulation_vrep.goalWaypoint.connect_to path_planning.goalWaypoint
+
   path_planning.trajectory.connect_to     simulation_vrep.trajectory
   path_planning.trajectory.connect_to	  waypoint_navigation.trajectory
 

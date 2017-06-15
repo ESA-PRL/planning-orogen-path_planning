@@ -23,10 +23,10 @@ namespace path_planning {
         base::Waypoint goalWaypoint;
         base::Waypoint wRover;
         std::vector<base::Waypoint> trajectory;
+        std::vector<short int> locVector;
         double Nraw, Ncol;
         std::vector< std::vector<double> > elevationMatrix;
-        std::vector< std::vector<double> > frictionMatrix;
-        std::vector< std::vector<double> > slipMatrix;
+        std::vector< std::vector<double> > costMatrix;
         std::vector< std::vector<double> > riskMatrix;
 
     public:
