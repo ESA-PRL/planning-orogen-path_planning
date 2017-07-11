@@ -3,20 +3,30 @@ name "path_planning"
 version "0.1"
 
 using_library "path_planning"
+using_library "envire"
 
 import_types_from "path_planningTypes.hpp"
 import_types_from "base"
+import_types_from "envire"
 
 task_context "Task" do
     needs_configuration
 
     property "config_value", "/std/string"
 
+    property "elevationFile", "/std/string"
+
+    property "costFile", "/std/string"
+
+    property "riskFile", "/std/string"
+
+    property "soilsFile", "/std/string"
+
     input_port("pose", "base/samples/RigidBodyState").
-        doc "Position and orientation of the Robot" 
+        doc "Position and orientation of the Robot"
 
     input_port("goalWaypoint", "/base/Waypoint").
-        doc "Waypoint of the desired goal" 
+        doc "Waypoint of the desired goal"
 
     output_port("trajectory", "/std/vector</base/Waypoint>").
         doc "Trajectory the robot should follow"
@@ -24,9 +34,8 @@ task_context "Task" do
     output_port("locomotionVector", "/std/vector< short int >").
         doc "Locomotion Mode to use to arrive at each Waypoint"
 
-    output_port("plannerReady", "int").
-        doc "Ready to receive current pose and goal"
+    output_port('work_map', ro_ptr('std/vector</envire/BinaryEvent>')).
+        doc "Resulting potential Field from Fast Marching algorithm"
 
     periodic 0.1
 end
-

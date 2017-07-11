@@ -8,10 +8,16 @@
 #include "fstream"
 
 using namespace PathPlanning_lib;
- 
+
+namespace envire {
+    class Environment;
+    class FrameNode;
+    class TraversabilityGrid;
+}
+
 namespace path_planning {
 
-    enum PathPlanningState {INITIAL, WAITING_GOAL, WAITING_POSE, FINDING_PATH, END};
+    enum PathPlanningState {INITIAL, WAITING_GOAL, WAITING_POSE, FINDING_PATH, END, DEBUGGING};
 
     class Task : public TaskBase
     {
@@ -24,10 +30,11 @@ namespace path_planning {
         base::Waypoint wRover;
         std::vector<base::Waypoint> trajectory;
         std::vector<short int> locVector;
-        double Nraw, Ncol;
         std::vector< std::vector<double> > elevationMatrix;
         std::vector< std::vector<double> > costMatrix;
         std::vector< std::vector<double> > riskMatrix;
+        std::vector< std::vector<double> > soilList;
+        PathPlanning_lib::NodeMap* map;
 
     public:
         /** TaskContext constructor for Task
@@ -36,16 +43,16 @@ namespace path_planning {
          */
         Task(std::string const& name = "path_planning::Task");
 
-        /** TaskContext constructor for Task 
-         * \param name Name of the task. This name needs to be unique to make it identifiable for nameservices. 
-         * \param engine The RTT Execution engine to be used for this task, which serialises the execution of all commands, programs, state machines and incoming events for a task. 
-         * 
+        /** TaskContext constructor for Task
+         * \param name Name of the task. This name needs to be unique to make it identifiable for nameservices.
+         * \param engine The RTT Execution engine to be used for this task, which serialises the execution of all commands, programs, state machines and incoming events for a task.
+         *
          */
         Task(std::string const& name, RTT::ExecutionEngine* engine);
 
         /** Default deconstructor of Task
          */
-	~Task();
+	      ~Task();
 
         /** This hook is called by Orocos when the state machine transitions
          * from PreOperational to Stopped. If it returns false, then the
@@ -76,7 +83,7 @@ namespace path_planning {
          *
          * The error(), exception() and fatal() calls, when called in this hook,
          * allow to get into the associated RunTimeError, Exception and
-         * FatalError states. 
+         * FatalError states.
          *
          * In the first case, updateHook() is still called, and recover() allows
          * you to go back into the Running state.  In the second case, the
@@ -86,7 +93,10 @@ namespace path_planning {
          */
         void updateHook();
 
-        std::vector< std::vector<double> > readMatrixFile(std::string map_file, double& Nrow, double& Ncol);
+        std::vector< std::vector<double> > readMatrixFile(std::string map_file);
+        std::vector< std::vector<double> > readTerrainFile(std::string terrain_file);
+
+        envire::Environment* matrix2envire(PathPlanning_lib::NodeMap * map);
 
         void errorHook();
 
@@ -104,4 +114,3 @@ namespace path_planning {
 }
 
 #endif
-

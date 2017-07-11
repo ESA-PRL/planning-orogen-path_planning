@@ -10,6 +10,10 @@ Orocos.run 'path_planning::Task' => 'path_planning',
            'simulation_vrep::Task' => 'simulation_vrep' do
 
   path_planning = Orocos.name_service.get 'path_planning'
+  path_planning.elevationFile = "../terrainData/prl/prl_elevationMap.txt"
+  path_planning.costFile = "../terrainData/prl/prl_costMap.txt"
+  path_planning.riskFile = "../terrainData/prl/prl_riskMap.txt"
+  path_planning.soilsFile = "../terrainData/prl/soilList.txt"
   path_planning.configure
 
   simulation_vrep = Orocos.name_service.get 'simulation_vrep'
