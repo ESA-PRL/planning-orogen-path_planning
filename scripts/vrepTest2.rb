@@ -37,7 +37,7 @@ Orocos.run 'locomotion_control::Task' => 'locomotion_control',
 
   simulation_vrep.motors_readings.connect_to           locomotion_control.joints_readings
   waypoint_navigation.motion_command.connect_to	       locomotion_control.motion_command
-  locomotion_control.joints_commands.connect_to       simulation_vrep.joints_commands
+  locomotion_control.joints_commands.connect_to        simulation_vrep.joints_commands
   
   simulation_vrep.start
   sleep 1

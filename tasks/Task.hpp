@@ -17,17 +17,19 @@ namespace envire {
 
 namespace path_planning {
 
-    enum PathPlanningState {INITIAL, WAITING_GOAL, WAITING_POSE, FINDING_PATH, END, DEBUGGING};
+    enum PathPlanningState {WAITING, FIRST_GOAL, FIRST_POSE, FINDING_PATH, END, DEBUGGING, CLOSE_TO_GOAL};
 
     class Task : public TaskBase
     {
 	friend class TaskBase;
     protected:
         PathPlanningState state;
-        PathPlanning_lib::PathPlanning planner;
+        PathPlanning_lib::PathPlanning globalPlanner;
         base::samples::RigidBodyState pose;
         base::Waypoint goalWaypoint;
+        base::Waypoint currentGoal;
         base::Waypoint wRover;
+        base::Waypoint currentPos;
         std::vector<base::Waypoint> trajectory;
         std::vector<short int> locVector;
         std::vector< std::vector<double> > elevationMatrix;
@@ -35,6 +37,16 @@ namespace path_planning {
         std::vector< std::vector<double> > riskMatrix;
         std::vector< std::vector<double> > soilList;
         PathPlanning_lib::NodeMap* map;
+        PathPlanning_lib::NodeMap* localNodeMap;
+        envire::ElevationGrid* workGrid;
+        envire::TraversabilityGrid* stateGrid;
+        bool newVisibleArea;
+        bool halfTrajectory;
+        int current_segment;
+
+        // extracted from: rock-planning/planning-orogen-simple_path_globalPlanner
+        RTT::FlowStatus mTraversabilityMapStatus;
+        envire::Environment* mEnv;
 
     public:
         /** TaskContext constructor for Task
@@ -110,6 +122,9 @@ namespace path_planning {
          * before calling start() again.
          */
         void cleanupHook();
+
+        RTT::FlowStatus receiveEnvireData();
+        bool extractTraversability();
     };
 }
 
