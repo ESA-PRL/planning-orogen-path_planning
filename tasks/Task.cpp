@@ -199,8 +199,8 @@ void Task::updateHook()
 
 
 
-            workGrid = globalMap->getEnvirePropagation();
-            //stateGrid = map->getEnvireState();
+            workGrid = map->getEnvirePropagation();
+            stateGrid = map->getEnvireState();
         /*for (uint j = 0; j < map->nodeMatrix[0].size(); j++)
         {
             for (uint i = 0; i < map->nodeMatrix.size(); i++)
@@ -211,7 +211,7 @@ void Task::updateHook()
         }*/
             envire::Environment* workEnv = new envire::Environment();
             workEnv->attachItem(workGrid);
-            //workEnv->attachItem(stateGrid);
+            workEnv->attachItem(stateGrid);
             envire::OrocosEmitter emitter_tmp(workEnv, _work_map);
             emitter_tmp.setTime(base::Time::now());
             emitter_tmp.flush();

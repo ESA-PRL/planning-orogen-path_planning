@@ -17,7 +17,8 @@ Orocos.run 'path_planning::Task' => 'path_planning',
            'command_joint_dispatcher::Task' => 'command_joint_dispatcher',
            'ptu_control::Task' => 'ptu_control',
            'motion_translator::Task' => 'motion_translator',
-           'vicon::Task' => 'vicon'  do
+           'vicon::Task' => 'vicon',
+           'controldev::JoystickTask'=>'joystick'  do
 
 
   # setup exoter ptu_control
@@ -25,6 +26,13 @@ Orocos.run 'path_planning::Task' => 'path_planning',
     ptu_control = Orocos.name_service.get 'ptu_control'
     Orocos.conf.apply(ptu_control, ['default'], :override => true)
     ptu_control.configure
+    puts "done"
+
+# setup motion_translator
+    puts "Setting up motion_translator"
+    motion_translator = Orocos.name_service.get 'motion_translator'
+    Orocos.conf.apply(motion_translator, ['default'], :override => true)
+    motion_translator.configure
     puts "done"
 
   # setup vicon
@@ -39,7 +47,7 @@ Orocos.run 'path_planning::Task' => 'path_planning',
     path_planning = Orocos.name_service.get 'path_planning'
     path_planning.elevationFile = "../terrainData/prl/prl_elevationMap.txt"
     path_planning.costFile = "../terrainData/prl/prl_costMap2.txt"
-    path_planning.globalCostFile = "../terrainData/prl/prl_globalCostMap2.txt"
+    path_planning.globalCostFile = "../terrainData/prl/prl_globalCostMap0.txt"
     path_planning.riskFile = "../terrainData/prl/prl_riskMap.txt"
     path_planning.soilsFile = "../terrainData/prl/soilList.txt"
     path_planning.configure
@@ -80,6 +88,13 @@ Orocos.run 'path_planning::Task' => 'path_planning',
     waypoint_navigation.configure
     puts "done"
 
+    # setup joystick
+    puts "Setting up joystick"
+    joystick = Orocos.name_service.get 'joystick'
+    Orocos.conf.apply(joystick, ['default', 'logitech_gamepad'], :override => true)
+    joystick.configure
+    puts "done"
+
   puts "Connecting ports"
 
   # Connect ports: ptu_control to command_joint_dispatcher
@@ -110,9 +125,11 @@ Orocos.run 'path_planning::Task' => 'path_planning',
     read_joint_dispatcher.motors_samples.connect_to       locomotion_control.joints_readings
     read_joint_dispatcher.ptu_samples.connect_to          ptu_control.ptu_samples
   
-  
+    joystick.raw_command.connect_to                      motion_translator.raw_command
+    motion_translator.ptu_command.connect_to             ptu_control.ptu_joints_commands
 
     ptu_control.start
+    joystick.start
     vicon.start
     path_planning.start
     waypoint_navigation.start
@@ -120,6 +137,7 @@ Orocos.run 'path_planning::Task' => 'path_planning',
     command_joint_dispatcher.start
     platform_driver.start
     read_joint_dispatcher.start
+    motion_translator.start
 
 
   Readline::readline("Press ENTER to exit\n")
