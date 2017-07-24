@@ -46,7 +46,7 @@ Orocos.run 'path_planning::Task' => 'path_planning',
     puts "Setting up path_planning"
     path_planning = Orocos.name_service.get 'path_planning'
     path_planning.elevationFile = "../terrainData/prl/prl_elevationMap.txt"
-    path_planning.costFile = "../terrainData/prl/prl_costMap2.txt"
+    path_planning.costFile = "../terrainData/prl/prl_costMapLander.txt"
     path_planning.globalCostFile = "../terrainData/prl/prl_globalCostMap0.txt"
     path_planning.riskFile = "../terrainData/prl/prl_riskMap.txt"
     path_planning.soilsFile = "../terrainData/prl/soilList.txt"
