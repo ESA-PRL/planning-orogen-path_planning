@@ -18,6 +18,8 @@ task_context "Task" do
 
     property "costFile", "/std/string"
 
+    property "globalCostFile", "/std/string"
+
     property "riskFile", "/std/string"
 
     property "soilsFile", "/std/string"

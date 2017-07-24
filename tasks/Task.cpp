@@ -50,13 +50,20 @@ bool Task::startHook()
     riskMatrix = readMatrixFile(_riskFile.get());
     soilList = readTerrainFile(_soilsFile.get());
 
-    globalPlanner.initTerrainList(soilList);
+    globalCostMatrix = readMatrixFile(_globalCostFile.get());
+
+    globalPlanner = new PathPlanning_lib::PathPlanning(GLOBAL_PLANNER);
+    localPlanner = new PathPlanning_lib::PathPlanning(LOCAL_PLANNER);
+
+    globalPlanner->initTerrainList(soilList);
+    localPlanner->initTerrainList(soilList);
 
     double size = 0.05;
     base::Pose2D pos;
     pos.position[0] = 0.0;
     pos.position[1] = 0.0;
-    map = new PathPlanning_lib::NodeMap(size, pos, elevationMatrix, costMatrix, riskMatrix);
+    map = new PathPlanning_lib::NodeMap(size, pos, elevationMatrix, costMatrix);
+    globalMap = new PathPlanning_lib::NodeMap(1.0, pos, globalCostMatrix, globalCostMatrix);
     map->hidAll();
     /*std::cout<< "NodeMap created: " << std::endl;
     std::cout<< " - Scale: " << map->scale << std::endl;
@@ -66,7 +73,11 @@ bool Task::startHook()
     state = FIRST_GOAL;
     halfTrajectory = false;
     newVisibleArea = false;
+    calculatedGlobalWork = false;
+    firstIteration = true;
     current_segment = 0;
+
+
     //state = DEBUGGING;
     return true;
 }
@@ -84,7 +95,7 @@ void Task::updateHook()
 	goalWaypoint.position[1] = 110;
 	goalWaypoint.position[2] = 0;
 
-        globalPlanner.fieldDStar(wRover, goalWaypoint,trajectory,locVector, map);
+        globalPlanner->fieldDStar(wRover, goalWaypoint,trajectory,locVector, map);
         state = END;
     }
 
@@ -149,9 +160,16 @@ void Task::updateHook()
 
     if (state == FINDING_PATH)
     {
+        if(!calculatedGlobalWork)
+        {
+            globalPlanner->fastMarching(wRover,goalWaypoint,globalMap,NULL, false);
+            std::cout<< "Global Work Map created" << std::endl;
+            calculatedGlobalWork = true;
+            firstIteration = true;
+        }
         newVisibleArea = map->updateVisibility(wRover);
-        if(newVisibleArea)
-            std::cout<< "New area is visible -> Replanning" << std::endl;
+        /*if(newVisibleArea)
+            std::cout<< "New area is visible -> Replanning" << std::endl;*/
 
         _current_segment.read(current_segment);
         if ((2*current_segment) > trajectory.size())
@@ -160,14 +178,16 @@ void Task::updateHook()
             halfTrajectory = true;
         }
 
-        if ((newVisibleArea)||(halfTrajectory))
+        //if ((newVisibleArea)||(halfTrajectory))
+        if ((firstIteration)||(halfTrajectory))
         {
             halfTrajectory = false;
             newVisibleArea = false;
-            globalPlanner.fastMarching(wRover,goalWaypoint,map);
+            firstIteration = false;
+            localPlanner->fastMarching(wRover,goalWaypoint,map,globalMap, true);
             trajectory.clear();
             locVector.clear();
-            globalPlanner.getPath(map, 0.5, trajectory, locVector);
+            localPlanner->getPath(map, 0.5, trajectory, locVector);
             std::cout<< "Trajectory has " << trajectory.size() << " Waypoints" << std::endl;
             /*for (unsigned int i = 0; i<trajectory.size(); i++)
     	      {
@@ -176,11 +196,11 @@ void Task::updateHook()
     	      }*/
             _trajectory.write(trajectory);
             _locomotionVector.write(locVector);
-        }
 
-        envire::Environment* workEnv = new envire::Environment();
-        workGrid = map->getEnvirePropagation();
-        stateGrid = map->getEnvireState();
+
+
+            workGrid = globalMap->getEnvirePropagation();
+            //stateGrid = map->getEnvireState();
         /*for (uint j = 0; j < map->nodeMatrix[0].size(); j++)
         {
             for (uint i = 0; i < map->nodeMatrix.size(); i++)
@@ -189,21 +209,23 @@ void Task::updateHook()
                           << "," << j << ") is "         << workGrid->getGridData()[(double)(i)*scale][(double)(j)*scale] << std::endl;
             }
         }*/
-        workEnv->attachItem(workGrid);
-        workEnv->attachItem(stateGrid);
-        envire::OrocosEmitter emitter_tmp(workEnv, _work_map);
-        emitter_tmp.setTime(base::Time::now());
-        emitter_tmp.flush();
-        if(sqrt(pow((wRover.position[0] - goalWaypoint.position[0]),2) +
-                 pow((wRover.position[1] - goalWaypoint.position[1]),2)) < 0.2)
-        {
-            state = CLOSE_TO_GOAL;
-            std::cout<< "Rover is close to the goal, no replanning" << std::endl;
-        }
-        else
-        {
-            state = WAITING;
-            std::cout<< "Planner is waiting" << std::endl;
+            envire::Environment* workEnv = new envire::Environment();
+            workEnv->attachItem(workGrid);
+            //workEnv->attachItem(stateGrid);
+            envire::OrocosEmitter emitter_tmp(workEnv, _work_map);
+            emitter_tmp.setTime(base::Time::now());
+            emitter_tmp.flush();
+            if(sqrt(pow((wRover.position[0] - goalWaypoint.position[0]),2) +
+                   pow((wRover.position[1] - goalWaypoint.position[1]),2)) < 0.2)
+            {
+                state = CLOSE_TO_GOAL;
+                std::cout<< "Rover is close to the goal, no replanning" << std::endl;
+            }
+            else
+            {
+                state = WAITING;
+                std::cout<< "Planner is waiting" << std::endl;
+            }
         }
     }
 }

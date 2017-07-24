@@ -24,7 +24,8 @@ namespace path_planning {
 	friend class TaskBase;
     protected:
         PathPlanningState state;
-        PathPlanning_lib::PathPlanning globalPlanner;
+        PathPlanning_lib::PathPlanning* globalPlanner;
+        PathPlanning_lib::PathPlanning* localPlanner;
         base::samples::RigidBodyState pose;
         base::Waypoint goalWaypoint;
         base::Waypoint currentGoal;
@@ -36,12 +37,16 @@ namespace path_planning {
         std::vector< std::vector<double> > costMatrix;
         std::vector< std::vector<double> > riskMatrix;
         std::vector< std::vector<double> > soilList;
+        std::vector< std::vector<double> > globalCostMatrix;
         PathPlanning_lib::NodeMap* map;
         PathPlanning_lib::NodeMap* localNodeMap;
+        PathPlanning_lib::NodeMap* globalMap;
         envire::ElevationGrid* workGrid;
         envire::TraversabilityGrid* stateGrid;
         bool newVisibleArea;
         bool halfTrajectory;
+        bool firstIteration;
+        bool calculatedGlobalWork;
         int current_segment;
 
         // extracted from: rock-planning/planning-orogen-simple_path_globalPlanner
