@@ -75,6 +75,7 @@ bool Task::startHook()
     newVisibleArea = false;
     calculatedGlobalWork = false;
     firstIteration = true;
+    isArriving = false;
     current_segment = 0;
 
 
@@ -162,7 +163,7 @@ void Task::updateHook()
     {
         if(!calculatedGlobalWork)
         {
-            globalPlanner->fastMarching(wRover,goalWaypoint,globalMap,NULL, false);
+            globalPlanner->fastMarching(wRover,goalWaypoint,globalMap,NULL);
             std::cout<< "Global Work Map created" << std::endl;
             calculatedGlobalWork = true;
             firstIteration = true;
@@ -184,16 +185,18 @@ void Task::updateHook()
             halfTrajectory = false;
             newVisibleArea = false;
             firstIteration = false;
-            localPlanner->fastMarching(wRover,goalWaypoint,map,globalMap, true);
-            trajectory.clear();
-            locVector.clear();
-            localPlanner->getPath(map, 0.5, trajectory, locVector);
+            localPlanner->fastMarching(wRover,goalWaypoint,map,globalMap);
+            //trajectory.clear();
+            //locVector.clear();
+            isArriving = localPlanner->getPath(map, 0.5, trajectory, locVector, current_segment);
             std::cout<< "Trajectory has " << trajectory.size() << " Waypoints" << std::endl;
             /*for (unsigned int i = 0; i<trajectory.size(); i++)
     	      {
     	          std::cout << "Waypoint " << i << " -> Pos: (" << trajectory[i].position[0] << "," << trajectory[i].position[1] << ") Height: " << trajectory[i].position[2]
                           << " Heading: " << trajectory[i].heading << " Loc: " << locVector[i] << std::endl;
     	      }*/
+            std::cout << "Back Waypoint -> Pos: (" << trajectory.back().position[0] << "," << trajectory.back().position[1] << ") Height: " << trajectory.back().position[2]
+                      << " Heading: " << trajectory.back().heading << " Loc: " << locVector.back() << std::endl;
             _trajectory.write(trajectory);
             _locomotionVector.write(locVector);
 
@@ -215,8 +218,7 @@ void Task::updateHook()
             envire::OrocosEmitter emitter_tmp(workEnv, _work_map);
             emitter_tmp.setTime(base::Time::now());
             emitter_tmp.flush();
-            if(sqrt(pow((wRover.position[0] - goalWaypoint.position[0]),2) +
-                   pow((wRover.position[1] - goalWaypoint.position[1]),2)) < 0.2)
+            if(isArriving)
             {
                 state = CLOSE_TO_GOAL;
                 std::cout<< "Rover is close to the goal, no replanning" << std::endl;

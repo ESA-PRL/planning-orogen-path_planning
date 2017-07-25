@@ -47,6 +47,7 @@ namespace path_planning {
         bool halfTrajectory;
         bool firstIteration;
         bool calculatedGlobalWork;
+        bool isArriving;
         int current_segment;
 
         // extracted from: rock-planning/planning-orogen-simple_path_globalPlanner
