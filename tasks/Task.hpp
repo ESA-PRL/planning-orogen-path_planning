@@ -50,6 +50,8 @@ namespace path_planning {
         bool isArriving;
         int current_segment;
 
+        base::commands::Joints ptu_joints_commands_out;
+
         // extracted from: rock-planning/planning-orogen-simple_path_globalPlanner
         RTT::FlowStatus mTraversabilityMapStatus;
         envire::Environment* mEnv;

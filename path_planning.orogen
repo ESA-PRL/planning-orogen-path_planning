@@ -40,10 +40,16 @@ task_context "Task" do
         doc "Trajectory the robot should follow"
 
     output_port("locomotionVector", "/std/vector< short int >").
+        doc "Locomotion Mode vector to use to arrive at each Waypoint"
+
+    output_port("locomotionMode", "int").
         doc "Locomotion Mode to use to arrive at each Waypoint"
 
     output_port('work_map', ro_ptr('std/vector</envire/BinaryEvent>')).
         doc "Resulting potential Field from Fast Marching algorithm"
+
+    output_port('ptu_commands_out', '/base/commands/Joints').
+        doc 'PTU joints commands.'
 
     periodic 1
 end

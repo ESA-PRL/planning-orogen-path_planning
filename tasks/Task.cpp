@@ -78,6 +78,12 @@ bool Task::startHook()
     isArriving = false;
     current_segment = 0;
 
+    ptu_joints_commands_out.resize(2);
+    ptu_joints_commands_out[0].position = 0.00;
+    ptu_joints_commands_out[1].position = 0.00;
+    ptu_joints_commands_out[0].speed = base::NaN<float>();
+    ptu_joints_commands_out[1].speed = base::NaN<float>();
+    //_ptu_commands_out.write(ptu_joints_commands_out);
 
     //state = DEBUGGING;
     return true;
@@ -147,8 +153,8 @@ void Task::updateHook()
             currentPos = wRover;
         }
         if ((state == WAITING) &&
-           ((wRover.position[0] != currentPos.position[0]) ||
-           (wRover.position[1] != currentPos.position[1])))
+           (sqrt(pow((wRover.position[0] - currentPos.position[0]),2) +
+                    pow((wRover.position[1] - currentPos.position[1]),2)) > 0.1))
         {
             state = FINDING_PATH;
             std::cout << "Rover at position (" << wRover.position[0] <<
@@ -169,10 +175,21 @@ void Task::updateHook()
             firstIteration = true;
         }
         newVisibleArea = map->updateVisibility(wRover);
-        /*if(newVisibleArea)
-            std::cout<< "New area is visible -> Replanning" << std::endl;*/
+        if(newVisibleArea)
+        {
+            workGrid = map->getEnvirePropagation();
+            stateGrid = map->getEnvireState();
+            envire::Environment* workEnv = new envire::Environment();
+            workEnv->attachItem(workGrid);
+            workEnv->attachItem(stateGrid);
+            envire::OrocosEmitter emitter_tmp(workEnv, _work_map);
+            emitter_tmp.setTime(base::Time::now());
+            emitter_tmp.flush();
+        }
+            std::cout<< "New area is visible -> Replanning" << std::endl;
 
         _current_segment.read(current_segment);
+
         if ((2*current_segment) > trajectory.size())
         {
             std::cout<< "Traversed half of the trajectory -> Replanning" << std::endl;
@@ -180,8 +197,8 @@ void Task::updateHook()
         }
 
         //if ((newVisibleArea)||(halfTrajectory))
-        if ((firstIteration)||(halfTrajectory))
-        {
+        /*if ((firstIteration)||(halfTrajectory))
+        {*/
             halfTrajectory = false;
             newVisibleArea = false;
             firstIteration = false;
@@ -189,6 +206,7 @@ void Task::updateHook()
             //trajectory.clear();
             //locVector.clear();
             isArriving = localPlanner->getPath(map, 0.5, trajectory, locVector, current_segment);
+            int loc = (int)globalMap->getLocomotionMode(trajectory[current_segment].position[0],trajectory[current_segment].position[1]);
             std::cout<< "Trajectory has " << trajectory.size() << " Waypoints" << std::endl;
             /*for (unsigned int i = 0; i<trajectory.size(); i++)
     	      {
@@ -197,13 +215,13 @@ void Task::updateHook()
     	      }*/
             std::cout << "Back Waypoint -> Pos: (" << trajectory.back().position[0] << "," << trajectory.back().position[1] << ") Height: " << trajectory.back().position[2]
                       << " Heading: " << trajectory.back().heading << " Loc: " << locVector.back() << std::endl;
+            std::cout<< "Next Locomotion: " << loc << std::endl;
             _trajectory.write(trajectory);
-            _locomotionVector.write(locVector);
+            //_locomotionVector.write(locVector);
+            _locomotionMode.write(loc);
 
 
 
-            workGrid = map->getEnvirePropagation();
-            stateGrid = map->getEnvireState();
         /*for (uint j = 0; j < map->nodeMatrix[0].size(); j++)
         {
             for (uint i = 0; i < map->nodeMatrix.size(); i++)
@@ -212,12 +230,7 @@ void Task::updateHook()
                           << "," << j << ") is "         << workGrid->getGridData()[(double)(i)*scale][(double)(j)*scale] << std::endl;
             }
         }*/
-            envire::Environment* workEnv = new envire::Environment();
-            workEnv->attachItem(workGrid);
-            workEnv->attachItem(stateGrid);
-            envire::OrocosEmitter emitter_tmp(workEnv, _work_map);
-            emitter_tmp.setTime(base::Time::now());
-            emitter_tmp.flush();
+
             if(isArriving)
             {
                 state = CLOSE_TO_GOAL;
@@ -228,7 +241,8 @@ void Task::updateHook()
                 state = WAITING;
                 std::cout<< "Planner is waiting" << std::endl;
             }
-        }
+        //}
+
     }
 }
 
