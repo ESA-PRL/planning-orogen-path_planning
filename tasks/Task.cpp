@@ -78,11 +78,11 @@ bool Task::startHook()
     isArriving = false;
     current_segment = 0;
 
-    ptu_joints_commands_out.resize(2);
+    /*ptu_joints_commands_out.resize(2);
     ptu_joints_commands_out[0].position = 0.00;
     ptu_joints_commands_out[1].position = 0.00;
     ptu_joints_commands_out[0].speed = base::NaN<float>();
-    ptu_joints_commands_out[1].speed = base::NaN<float>();
+    ptu_joints_commands_out[1].speed = base::NaN<float>();*/
     //_ptu_commands_out.write(ptu_joints_commands_out);
 
     //state = DEBUGGING;

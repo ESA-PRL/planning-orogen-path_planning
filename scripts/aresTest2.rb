@@ -96,6 +96,7 @@ Orocos.run 'path_planning::Task' => 'path_planning',
     puts "done"
 
   puts "Connecting ports"
+  Orocos.log_all_ports
 
   # Connect ports: ptu_control to command_joint_dispatcher
     ptu_control.ptu_commands_out.connect_to               command_joint_dispatcher.ptu_commands

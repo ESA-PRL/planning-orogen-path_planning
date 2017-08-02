@@ -16,7 +16,9 @@ Orocos.run 'locomotion_control::Task' => 'locomotion_control',
            'command_joint_dispatcher::Task' => 'command_joint_dispatcher',
            'ptu_control::Task' => 'ptu_control',
            'motion_translator::Task' => 'motion_translator',
-           'vicon::Task' => 'vicon' do
+           'vicon::Task' => 'vicon',
+           'controldev::JoystickTask'=>'joystick',
+           'motion_translator::Task' => 'motion_translator' do
 
   # setup exoter ptu_control
     puts "Setting up ptu_control"
@@ -35,6 +37,11 @@ Orocos.run 'locomotion_control::Task' => 'locomotion_control',
   # setup path_planning
     puts "Setting up path_planning"
     path_planning = Orocos.name_service.get 'path_planning'
+    path_planning.elevationFile = "../terrainData/prl/prl_elevationMap.txt"
+    path_planning.costFile = "../terrainData/prl/prl_costMapLander.txt"
+    path_planning.globalCostFile = "../terrainData/prl/prl_globalCostMap2.txt"
+    path_planning.riskFile = "../terrainData/prl/prl_riskMap.txt"
+    path_planning.soilsFile = "../terrainData/prl/soilList.txt"
     path_planning.configure
     puts "done"
 
@@ -85,7 +92,22 @@ Orocos.run 'locomotion_control::Task' => 'locomotion_control',
     locomotion_switcher.configure
     puts "done"
 
+    # setup joystick
+    puts "Setting up joystick"
+    joystick = Orocos.name_service.get 'joystick'
+    Orocos.conf.apply(joystick, ['default', 'logitech_gamepad'], :override => true)
+    joystick.configure
+    puts "done"
+
+    # setup motion_translator
+    puts "Setting up motion_translator"
+    motion_translator = Orocos.name_service.get 'motion_translator'
+    Orocos.conf.apply(motion_translator, ['default'], :override => true)
+    motion_translator.configure
+    puts "done"
+
   puts "Connecting ports"
+  #Orocos.log_all_ports
     
   # Connect ports: ptu_control to command_joint_dispatcher
     ptu_control.ptu_commands_out.connect_to               command_joint_dispatcher.ptu_commands
@@ -100,17 +122,19 @@ Orocos.run 'locomotion_control::Task' => 'locomotion_control',
     path_planning.trajectory.connect_to	                  waypoint_navigation.trajectory
     path_planning.trajectory.connect_to                   locomotion_switcher.trajectory
     path_planning.locomotionVector.connect_to	          locomotion_switcher.locomotionVector
+    path_planning.locomotionMode.connect_to	       locomotion_switcher.locomotionMode
 
   # Connecting waypoint_navigation outputs
     waypoint_navigation.motion_command.connect_to	  locomotion_switcher.joystick_motion_command
     waypoint_navigation.current_segment.connect_to        locomotion_switcher.current_segment
     waypoint_navigation.currentWaypoint.connect_to        locomotion_switcher.currentWaypoint
+    waypoint_navigation.current_segment.connect_to        path_planning.current_segment
 
   # Connecting locomotion_switcher outputs
     locomotion_switcher.joints_commands.connect_to        command_joint_dispatcher.joints_commands         
     locomotion_switcher.ww_joystick_command.connect_to    wheel_walking_control.joystick_commands
     locomotion_switcher.kill_switch.connect_to            wheel_walking_control.kill_switch
-    locomotion_switcher.lc_readings.connect_to            locomotion_control.joints_readings
+    #locomotion_switcher.lc_readings.connect_to            locomotion_control.joints_readings
     locomotion_switcher.lc_motion_command.connect_to      locomotion_control.motion_command
     locomotion_switcher.bema_command.connect_to           locomotion_control.bema_command
     locomotion_switcher.walking_command_front.connect_to  locomotion_control.walking_command_front
@@ -130,10 +154,14 @@ Orocos.run 'locomotion_control::Task' => 'locomotion_control',
     platform_driver.joints_readings.connect_to            read_joint_dispatcher.joints_readings 
 
   # Connecting read_joint_dispatcher outputs
+    read_joint_dispatcher.motors_samples.connect_to       locomotion_control.joints_readings
     read_joint_dispatcher.motors_samples.connect_to       locomotion_switcher.motors_readings
     read_joint_dispatcher.joints_samples.connect_to       wheel_walking_control.joint_readings
     read_joint_dispatcher.joints_samples.connect_to       locomotion_switcher.joints_readings
     read_joint_dispatcher.ptu_samples.connect_to          ptu_control.ptu_samples
+
+    joystick.raw_command.connect_to                      motion_translator.raw_command
+    motion_translator.ptu_command.connect_to             ptu_control.ptu_joints_commands
 
     puts "done"
 
@@ -148,7 +176,8 @@ Orocos.run 'locomotion_control::Task' => 'locomotion_control',
     command_joint_dispatcher.start
     platform_driver.start
     read_joint_dispatcher.start
-  
+    motion_translator.start
+    joystick.start
 
     Readline::readline("Press ENTER to exit\n")
 
