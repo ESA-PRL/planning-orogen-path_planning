@@ -47,7 +47,6 @@ bool Task::startHook()
 
     elevationMatrix = readMatrixFile(_elevationFile.get());
     costMatrix = readMatrixFile(_costFile.get());
-    riskMatrix = readMatrixFile(_riskFile.get());
     soilList = readTerrainFile(_soilsFile.get());
 
     globalCostMatrix = readMatrixFile(_globalCostFile.get());
@@ -58,13 +57,14 @@ bool Task::startHook()
     globalPlanner->initTerrainList(soilList);
     localPlanner->initTerrainList(soilList);
 
-    double size = 0.05;
+    //double size = 0.0625;
     base::Pose2D pos;
     pos.position[0] = 0.0;
     pos.position[1] = 0.0;
-    map = new PathPlanning_lib::NodeMap(size, pos, elevationMatrix, costMatrix);
-    globalMap = new PathPlanning_lib::NodeMap(1.0, pos, globalCostMatrix, globalCostMatrix);
-    map->hidAll();
+    map = new PathPlanning_lib::NodeMap(_local_res, pos, elevationMatrix, costMatrix, HIDDEN);
+    globalMap = new PathPlanning_lib::NodeMap(1.0, pos, globalCostMatrix, globalCostMatrix,OPEN);
+    globalMap->makeNeighbourhood();
+    //map->hidAll();
     /*std::cout<< "NodeMap created: " << std::endl;
     std::cout<< " - Scale: " << map->scale << std::endl;
     std::cout<< " - Reference Frame: (" << map->globalOriginPose.position [0] << "," << map->globalOriginPose.position [1] << ")"  << std::endl;
@@ -163,7 +163,14 @@ void Task::updateHook()
                          wRover.heading << " rad" << std::endl;
             currentPos = wRover;
         }
+        if (calculatedGlobalWork) 
+        {
+            int loc = (int)globalMap->getLocomotionMode(wRover.position[0],wRover.position[1]);
+            _locomotionMode.write(loc);
+        }
+
     }
+
 
     if (state == FINDING_PATH)
     {
@@ -171,11 +178,52 @@ void Task::updateHook()
         {
             globalPlanner->fastMarching(wRover,goalWaypoint,globalMap,NULL);
             std::cout<< "Global Work Map created" << std::endl;
+            for(uint j = 0; j < globalMap->nodeMatrix.size(); j++)
+            {
+                for(uint i = 0; i < globalMap->nodeMatrix[0].size();i++)
+                    std::cout << globalMap->nodeMatrix[j][i]->work << " ";
+                std::cout << std::endl;
+            }
+            std::cout << std::endl;
+            for(uint j = 0; j < globalMap->nodeMatrix.size(); j++)
+            {
+                for(uint i = 0; i < globalMap->nodeMatrix[0].size();i++)
+                    std::cout << globalMap->nodeMatrix[j][i]->terrain << " ";
+                std::cout << std::endl;
+            }
+\
             calculatedGlobalWork = true;
             firstIteration = true;
         }
-        newVisibleArea = map->updateVisibility(wRover);
-        if(newVisibleArea)
+        newVisibleArea = map->updateVisibility(wRover,globalMap);
+/*        if(newVisibleArea) //TODO: optimize the visualization of the workmap
+        {
+            workGrid = map->getEnvirePropagation();
+            stateGrid = map->getEnvireState();
+            envire::Environment* workEnv = new envire::Environment();
+            workEnv->attachItem(workGrid);
+            workEnv->attachItem(stateGrid);
+            envire::OrocosEmitter emitter_tmp(workEnv, _work_map);
+            emitter_tmp.setTime(base::Time::now());
+            emitter_tmp.flush();
+        }*/
+            std::cout<< "New area is visible -> Replanning" << std::endl;
+        _current_segment.read(current_segment);
+
+        /*if ((2*current_segment) > trajectory.size())
+        {
+            std::cout<< "Traversed half of the trajectory -> Replanning" << std::endl;
+            halfTrajectory = true;
+        }*/
+
+        //if ((newVisibleArea)||(halfTrajectory))
+        /*if ((firstIteration)||(halfTrajectory))
+        {*/
+            halfTrajectory = false;
+           // newVisibleArea = false;
+            firstIteration = false;
+            localPlanner->fastMarching(wRover,goalWaypoint,map,globalMap);
+            if(newVisibleArea) //TODO: optimize the visualization of the workmap
         {
             workGrid = map->getEnvirePropagation();
             stateGrid = map->getEnvireState();
@@ -186,39 +234,24 @@ void Task::updateHook()
             emitter_tmp.setTime(base::Time::now());
             emitter_tmp.flush();
         }
-            std::cout<< "New area is visible -> Replanning" << std::endl;
-
-        _current_segment.read(current_segment);
-
-        if ((2*current_segment) > trajectory.size())
-        {
-            std::cout<< "Traversed half of the trajectory -> Replanning" << std::endl;
-            halfTrajectory = true;
-        }
-
-        //if ((newVisibleArea)||(halfTrajectory))
-        /*if ((firstIteration)||(halfTrajectory))
-        {*/
-            halfTrajectory = false;
             newVisibleArea = false;
-            firstIteration = false;
-            localPlanner->fastMarching(wRover,goalWaypoint,map,globalMap);
+
             //trajectory.clear();
             //locVector.clear();
             isArriving = localPlanner->getPath(map, 0.5, trajectory, locVector, current_segment);
-            int loc = (int)globalMap->getLocomotionMode(trajectory[current_segment].position[0],trajectory[current_segment].position[1]);
+            //int loc = (int)globalMap->getLocomotionMode(trajectory[current_segment].position[0],trajectory[current_segment].position[1]);
             std::cout<< "Trajectory has " << trajectory.size() << " Waypoints" << std::endl;
             /*for (unsigned int i = 0; i<trajectory.size(); i++)
     	      {
     	          std::cout << "Waypoint " << i << " -> Pos: (" << trajectory[i].position[0] << "," << trajectory[i].position[1] << ") Height: " << trajectory[i].position[2]
                           << " Heading: " << trajectory[i].heading << " Loc: " << locVector[i] << std::endl;
     	      }*/
-            std::cout << "Back Waypoint -> Pos: (" << trajectory.back().position[0] << "," << trajectory.back().position[1] << ") Height: " << trajectory.back().position[2]
+            /*std::cout << "Back Waypoint -> Pos: (" << trajectory.back().position[0] << "," << trajectory.back().position[1] << ") Height: " << trajectory.back().position[2]
                       << " Heading: " << trajectory.back().heading << " Loc: " << locVector.back() << std::endl;
-            std::cout<< "Next Locomotion: " << loc << std::endl;
+            std::cout<< "Next Locomotion: " << loc << std::endl;*/
             _trajectory.write(trajectory);
             //_locomotionVector.write(locVector);
-            _locomotionMode.write(loc);
+            //_locomotionMode.write(loc);
 
 
 

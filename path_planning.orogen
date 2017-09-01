@@ -24,6 +24,8 @@ task_context "Task" do
 
     property "soilsFile", "/std/string"
 
+    property "local_res", "double"
+
     input_port("pose", "base/samples/RigidBodyState").
         doc "Position and orientation of the Robot"
 
