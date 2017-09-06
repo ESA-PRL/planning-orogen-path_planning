@@ -61,8 +61,9 @@ bool Task::startHook()
     base::Pose2D pos;
     pos.position[0] = 0.0;
     pos.position[1] = 0.0;
-    map = new PathPlanning_lib::NodeMap(_local_res, pos, elevationMatrix, costMatrix, HIDDEN);
+    //map = new PathPlanning_lib::NodeMap(_local_res, pos, elevationMatrix, costMatrix, HIDDEN);
     globalMap = new PathPlanning_lib::NodeMap(1.0, pos, globalCostMatrix, globalCostMatrix,OPEN);
+    map = new PathPlanning_lib::NodeMap(_local_res, pos, elevationMatrix, costMatrix, HIDDEN);
     globalMap->makeNeighbourhood();
     //map->hidAll();
     /*std::cout<< "NodeMap created: " << std::endl;
@@ -76,6 +77,7 @@ bool Task::startHook()
     calculatedGlobalWork = false;
     firstIteration = true;
     isArriving = false;
+    isClose = false;
     current_segment = 0;
 
     /*ptu_joints_commands_out.resize(2);
@@ -153,8 +155,9 @@ void Task::updateHook()
             currentPos = wRover;
         }
         if ((state == WAITING) &&
-           (sqrt(pow((wRover.position[0] - currentPos.position[0]),2) +
-                    pow((wRover.position[1] - currentPos.position[1]),2)) > 0.1))
+           ((sqrt(pow((wRover.position[0] - currentPos.position[0]),2) +
+                    pow((wRover.position[1] - currentPos.position[1]),2)) > 0.1)||
+            (acos(cos(wRover.heading)*cos(currentPos.heading) + sin(wRover.heading)*sin(currentPos.heading)) > 5*3.14/180)))
         {
             state = FINDING_PATH;
             std::cout << "Rover at position (" << wRover.position[0] <<
@@ -163,14 +166,16 @@ void Task::updateHook()
                          wRover.heading << " rad" << std::endl;
             currentPos = wRover;
         }
-        if (calculatedGlobalWork) 
+        if (calculatedGlobalWork)
         {
             int loc = (int)globalMap->getLocomotionMode(wRover.position[0],wRover.position[1]);
             _locomotionMode.write(loc);
         }
+        if (sqrt(pow((wRover.position[0] - goalWaypoint.position[0]),2) +
+                    pow((wRover.position[1] - goalWaypoint.position[1]),2)) < 0.3)
+            isClose = true;
 
     }
-
 
     if (state == FINDING_PATH)
     {
@@ -178,7 +183,7 @@ void Task::updateHook()
         {
             globalPlanner->fastMarching(wRover,goalWaypoint,globalMap,NULL);
             std::cout<< "Global Work Map created" << std::endl;
-            for(uint j = 0; j < globalMap->nodeMatrix.size(); j++)
+            /*for(uint j = 0; j < globalMap->nodeMatrix.size(); j++)
             {
                 for(uint i = 0; i < globalMap->nodeMatrix[0].size();i++)
                     std::cout << globalMap->nodeMatrix[j][i]->work << " ";
@@ -190,12 +195,22 @@ void Task::updateHook()
                 for(uint i = 0; i < globalMap->nodeMatrix[0].size();i++)
                     std::cout << globalMap->nodeMatrix[j][i]->terrain << " ";
                 std::cout << std::endl;
-            }
-\
+            }*/
+            //COMMENTED FOR DECOS TEST
+            globalWork = globalMap->getEnvirePropagation(wRover,false);
+            globalState = globalMap->getGlobalEnvireState();
+            envire::Environment* globalEnv = new envire::Environment();
+            globalEnv->attachItem(globalWork);
+            globalEnv->attachItem(globalState);
+            envire::OrocosEmitter emitter_global(globalEnv, _global_map);
+            emitter_global.setTime(base::Time::now());
+            emitter_global.flush();
+
             calculatedGlobalWork = true;
             firstIteration = true;
+            newVisibleArea = map->updateVisibility(wRover,globalMap,true);
         }
-        newVisibleArea = map->updateVisibility(wRover,globalMap);
+        newVisibleArea = map->updateVisibility(wRover,globalMap,false);
 /*        if(newVisibleArea) //TODO: optimize the visualization of the workmap
         {
             workGrid = map->getEnvirePropagation();
@@ -223,17 +238,18 @@ void Task::updateHook()
            // newVisibleArea = false;
             firstIteration = false;
             localPlanner->fastMarching(wRover,goalWaypoint,map,globalMap);
+            //COMMENTED FOR DECOS TEST  
             if(newVisibleArea) //TODO: optimize the visualization of the workmap
-        {
-            workGrid = map->getEnvirePropagation();
-            stateGrid = map->getEnvireState();
-            envire::Environment* workEnv = new envire::Environment();
-            workEnv->attachItem(workGrid);
-            workEnv->attachItem(stateGrid);
-            envire::OrocosEmitter emitter_tmp(workEnv, _work_map);
-            emitter_tmp.setTime(base::Time::now());
-            emitter_tmp.flush();
-        }
+            {
+                workGrid = map->getEnvirePropagation(wRover, _crop_local);
+                stateGrid = map->getLocalEnvireState(wRover, _crop_local);
+                envire::Environment* localEnv = new envire::Environment();
+                localEnv->attachItem(workGrid);
+                localEnv->attachItem(stateGrid);
+                envire::OrocosEmitter emitter_tmp(localEnv, _local_map);
+                emitter_tmp.setTime(base::Time::now());
+                emitter_tmp.flush();
+            }
             newVisibleArea = false;
 
             //trajectory.clear();
@@ -264,7 +280,7 @@ void Task::updateHook()
             }
         }*/
 
-            if(isArriving)
+            if((isArriving)&&(isClose))
             {
                 state = CLOSE_TO_GOAL;
                 std::cout<< "Rover is close to the goal, no replanning" << std::endl;

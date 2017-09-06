@@ -15,7 +15,6 @@ Orocos.run 'locomotion_control::Task' => 'locomotion_control',
            'read_joint_dispatcher::Task' => 'read_joint_dispatcher',
            'command_joint_dispatcher::Task' => 'command_joint_dispatcher',
            'ptu_control::Task' => 'ptu_control',
-           'motion_translator::Task' => 'motion_translator',
            'vicon::Task' => 'vicon',
            'controldev::JoystickTask'=>'joystick',
            'motion_translator::Task' => 'motion_translator' do
@@ -39,7 +38,7 @@ Orocos.run 'locomotion_control::Task' => 'locomotion_control',
     path_planning = Orocos.name_service.get 'path_planning'
     path_planning.elevationFile = "../terrainData/prl/prl_elevationMap.txt"
     path_planning.costFile = "../terrainData/prl/prl_costMapLander.txt"
-    path_planning.globalCostFile = "../terrainData/prl/prl_globalCostMap2.txt"
+    path_planning.globalCostFile = "../terrainData/prl/prl_globalCostMap0.txt"
     path_planning.riskFile = "../terrainData/prl/prl_riskMap.txt"
     path_planning.soilsFile = "../terrainData/prl/soilList.txt"
     path_planning.configure
@@ -115,19 +114,19 @@ Orocos.run 'locomotion_control::Task' => 'locomotion_control',
   # Connecting vicon outputs
     vicon.pose_samples.connect_to                         path_planning.pose
     vicon.pose_samples.connect_to                         waypoint_navigation.pose
-    vicon.pose_samples.connect_to                         locomotion_switcher.pose
+    #vicon.pose_samples.connect_to                         locomotion_switcher.pose
     #Find a way to give path planning the goal waypoint
 
   # Connecting path_planning outputs
     path_planning.trajectory.connect_to	                  waypoint_navigation.trajectory
     path_planning.trajectory.connect_to                   locomotion_switcher.trajectory
-    path_planning.locomotionVector.connect_to	          locomotion_switcher.locomotionVector
+    #path_planning.locomotionVector.connect_to	          locomotion_switcher.locomotionVector
     path_planning.locomotionMode.connect_to	       locomotion_switcher.locomotionMode
 
   # Connecting waypoint_navigation outputs
     waypoint_navigation.motion_command.connect_to	  locomotion_switcher.joystick_motion_command
-    waypoint_navigation.current_segment.connect_to        locomotion_switcher.current_segment
-    waypoint_navigation.currentWaypoint.connect_to        locomotion_switcher.currentWaypoint
+    #waypoint_navigation.current_segment.connect_to        locomotion_switcher.current_segment
+    #waypoint_navigation.currentWaypoint.connect_to        locomotion_switcher.currentWaypoint
     waypoint_navigation.current_segment.connect_to        path_planning.current_segment
 
   # Connecting locomotion_switcher outputs
@@ -158,7 +157,7 @@ Orocos.run 'locomotion_control::Task' => 'locomotion_control',
     read_joint_dispatcher.motors_samples.connect_to       locomotion_control.joints_readings
     read_joint_dispatcher.motors_samples.connect_to       locomotion_switcher.motors_readings
     read_joint_dispatcher.joints_samples.connect_to       wheel_walking_control.joint_readings
-    read_joint_dispatcher.joints_samples.connect_to       locomotion_switcher.joints_readings
+    #read_joint_dispatcher.joints_samples.connect_to       locomotion_switcher.joints_readings
     read_joint_dispatcher.ptu_samples.connect_to          ptu_control.ptu_samples
 
     joystick.raw_command.connect_to                      motion_translator.raw_command

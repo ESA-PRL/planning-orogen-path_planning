@@ -42,12 +42,15 @@ namespace path_planning {
         PathPlanning_lib::NodeMap* localNodeMap;
         PathPlanning_lib::NodeMap* globalMap;
         envire::ElevationGrid* workGrid;
+        envire::ElevationGrid* globalWork;
         envire::TraversabilityGrid* stateGrid;
+        envire::TraversabilityGrid* globalState;
         bool newVisibleArea;
         bool halfTrajectory;
         bool firstIteration;
         bool calculatedGlobalWork;
         bool isArriving;
+        bool isClose;
         int current_segment;
 
         //base::commands::Joints ptu_joints_commands_out;

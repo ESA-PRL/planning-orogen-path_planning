@@ -26,6 +26,8 @@ task_context "Task" do
 
     property "local_res", "double"
 
+    property "crop_local", "bool"
+
     input_port("pose", "base/samples/RigidBodyState").
         doc "Position and orientation of the Robot"
 
@@ -47,8 +49,14 @@ task_context "Task" do
     output_port("locomotionMode", "int").
         doc "Locomotion Mode to use to arrive at each Waypoint"
 
-    output_port('work_map', ro_ptr('std/vector</envire/BinaryEvent>')).
-        doc "Resulting potential Field from Fast Marching algorithm"
+    output_port('local_map', ro_ptr('std/vector</envire/BinaryEvent>')).
+        doc "Local Envire Maps from ARES path planner"
+
+    output_port("local_states", "/std/vector< double >").
+        doc "Vector of states in local nodes"
+
+    output_port('global_map', ro_ptr('std/vector</envire/BinaryEvent>')).
+        doc "Global Envire Maps from ARES path planner"
 
     output_port('ptu_commands_out', '/base/commands/Joints').
         doc 'PTU joints commands.'
