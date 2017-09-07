@@ -8,6 +8,7 @@
 
 using namespace path_planning;
 using namespace Eigen;
+namespace LM = locomotion_switcher;
 
 Task::Task(std::string const& name)
     : TaskBase(name),
@@ -168,8 +169,13 @@ void Task::updateHook()
         }
         if (calculatedGlobalWork)
         {
+            LM::LocomotionMode lm;
             int loc = (int)globalMap->getLocomotionMode(wRover.position[0],wRover.position[1]);
-            _locomotionMode.write(loc);
+            if (loc == DRIVING)
+                lm = LM::LocomotionMode::DRIVING;
+            else if (loc == WHEEL_WALKING)
+                lm = LM::LocomotionMode::WHEEL_WALKING;
+            _locomotionMode.write(lm);
         }
         if (sqrt(pow((wRover.position[0] - goalWaypoint.position[0]),2) +
                     pow((wRover.position[1] - goalWaypoint.position[1]),2)) < 0.3)
