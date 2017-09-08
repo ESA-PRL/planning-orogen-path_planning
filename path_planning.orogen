@@ -29,6 +29,10 @@ task_context "Task" do
 
     property "crop_local", "bool"
 
+    property "work_scale", "double"
+
+    property "invert_power", "bool"
+
     input_port("pose", "base/samples/RigidBodyState").
         doc "Position and orientation of the Robot"
 
@@ -44,11 +48,11 @@ task_context "Task" do
     input_port("power_update", "double").
         doc "Value of power to update nearest node"
 
+    input_port("slip_ratio", "double").
+        doc "Value of slip_ratio to update nearest node"
+    
     output_port("trajectory", "/std/vector</base/Waypoint>").
         doc "Trajectory the robot should follow"
-
-    output_port("locomotionVector", "/std/vector< short int >").
-        doc "Locomotion Mode vector to use to arrive at each Waypoint"
 
     output_port("locomotionMode", "locomotion_switcher/LocomotionMode").
         doc "Locomotion Mode to use to arrive at each Waypoint"

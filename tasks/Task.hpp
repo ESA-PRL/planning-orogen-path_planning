@@ -52,6 +52,8 @@ namespace path_planning {
         bool isArriving;
         bool isClose;
         int current_segment;
+        double power_update;
+        double slip_ratio;
 
         //base::commands::Joints ptu_joints_commands_out;
 

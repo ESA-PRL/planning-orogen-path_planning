@@ -183,6 +183,44 @@ void Task::updateHook()
 
     }
 
+    if((_power_update.read(power_update) == RTT::NewData)&&(calculatedGlobalWork))
+    {
+        if(globalMap->updateNodePower(power_update, wRover, _invert_power))
+        {
+            std::cout<< "Global Work Map is replanning" << std::endl;
+            globalPlanner->fastMarching(wRover,goalWaypoint,globalMap,NULL);
+            map->resetHorizonNodes(globalMap);
+            state = FINDING_PATH;
+        }
+    }
+
+    if((_slip_ratio.read(slip_ratio) == RTT::NewData)&&(calculatedGlobalWork))
+    {
+        std::cout<< "PLANNER: received slip value" << std::endl;
+        if(globalMap->updateNodeSlip(slip_ratio, wRover))
+        {
+            std::cout<< "PLANNER: Global Work Map is replanning due to change of slip value" << std::endl;
+            globalPlanner->fastMarching(wRover,goalWaypoint,globalMap,NULL);
+            map->resetHorizonNodes(globalMap);
+            //FOR DEBUGGING
+            for(uint j = 0; j < globalMap->nodeMatrix.size(); j++)
+            {
+                for(uint i = 0; i < globalMap->nodeMatrix[0].size();i++)
+                    std::cout << globalMap->nodeMatrix[j][i]->work << " ";
+                std::cout << std::endl;
+            }
+            state = FINDING_PATH;
+            globalWork = globalMap->getEnvirePropagation(wRover,false, _work_scale);
+            globalState = globalMap->getGlobalEnvireState();
+            envire::Environment* globalEnv = new envire::Environment();
+            globalEnv->attachItem(globalWork);
+            globalEnv->attachItem(globalState);
+            envire::OrocosEmitter emitter_global(globalEnv, _global_map);
+            emitter_global.setTime(base::Time::now());
+            emitter_global.flush();
+        }
+    }
+
     if (state == FINDING_PATH)
     {
         if(!calculatedGlobalWork)
@@ -202,8 +240,7 @@ void Task::updateHook()
                     std::cout << globalMap->nodeMatrix[j][i]->terrain << " ";
                 std::cout << std::endl;
             }*/
-            //COMMENTED FOR DECOS TEST
-            globalWork = globalMap->getEnvirePropagation(wRover,false);
+            globalWork = globalMap->getEnvirePropagation(wRover,false, _work_scale);
             globalState = globalMap->getGlobalEnvireState();
             envire::Environment* globalEnv = new envire::Environment();
             globalEnv->attachItem(globalWork);
@@ -217,37 +254,15 @@ void Task::updateHook()
             newVisibleArea = map->updateVisibility(wRover,globalMap,true);
         }
         newVisibleArea = map->updateVisibility(wRover,globalMap,false);
-/*        if(newVisibleArea) //TODO: optimize the visualization of the workmap
-        {
-            workGrid = map->getEnvirePropagation();
-            stateGrid = map->getEnvireState();
-            envire::Environment* workEnv = new envire::Environment();
-            workEnv->attachItem(workGrid);
-            workEnv->attachItem(stateGrid);
-            envire::OrocosEmitter emitter_tmp(workEnv, _work_map);
-            emitter_tmp.setTime(base::Time::now());
-            emitter_tmp.flush();
-        }*/
-            std::cout<< "New area is visible -> Replanning" << std::endl;
+        std::cout<< "New area is visible -> Replanning" << std::endl;
         _current_segment.read(current_segment);
 
-        /*if ((2*current_segment) > trajectory.size())
-        {
-            std::cout<< "Traversed half of the trajectory -> Replanning" << std::endl;
-            halfTrajectory = true;
-        }*/
-
-        //if ((newVisibleArea)||(halfTrajectory))
-        /*if ((firstIteration)||(halfTrajectory))
-        {*/
             halfTrajectory = false;
-           // newVisibleArea = false;
             firstIteration = false;
             localPlanner->fastMarching(wRover,goalWaypoint,map,globalMap);
-            //COMMENTED FOR DECOS TEST  
             if(newVisibleArea) //TODO: optimize the visualization of the workmap
             {
-                workGrid = map->getEnvirePropagation(wRover, _crop_local);
+                workGrid = map->getEnvirePropagation(wRover, _crop_local, _work_scale);
                 stateGrid = map->getLocalEnvireState(wRover, _crop_local);
                 envire::Environment* localEnv = new envire::Environment();
                 localEnv->attachItem(workGrid);
@@ -258,33 +273,9 @@ void Task::updateHook()
             }
             newVisibleArea = false;
 
-            //trajectory.clear();
-            //locVector.clear();
             isArriving = localPlanner->getPath(map, 0.5, trajectory, locVector, current_segment);
-            //int loc = (int)globalMap->getLocomotionMode(trajectory[current_segment].position[0],trajectory[current_segment].position[1]);
             std::cout<< "Trajectory has " << trajectory.size() << " Waypoints" << std::endl;
-            /*for (unsigned int i = 0; i<trajectory.size(); i++)
-    	      {
-    	          std::cout << "Waypoint " << i << " -> Pos: (" << trajectory[i].position[0] << "," << trajectory[i].position[1] << ") Height: " << trajectory[i].position[2]
-                          << " Heading: " << trajectory[i].heading << " Loc: " << locVector[i] << std::endl;
-    	      }*/
-            /*std::cout << "Back Waypoint -> Pos: (" << trajectory.back().position[0] << "," << trajectory.back().position[1] << ") Height: " << trajectory.back().position[2]
-                      << " Heading: " << trajectory.back().heading << " Loc: " << locVector.back() << std::endl;
-            std::cout<< "Next Locomotion: " << loc << std::endl;*/
             _trajectory.write(trajectory);
-            //_locomotionVector.write(locVector);
-            //_locomotionMode.write(loc);
-
-
-
-        /*for (uint j = 0; j < map->nodeMatrix[0].size(); j++)
-        {
-            for (uint i = 0; i < map->nodeMatrix.size(); i++)
-            {
-                std::cout << "Work of node (" << i
-                          << "," << j << ") is "         << workGrid->getGridData()[(double)(i)*scale][(double)(j)*scale] << std::endl;
-            }
-        }*/
 
             if((isArriving)&&(isClose))
             {
@@ -296,7 +287,6 @@ void Task::updateHook()
                 state = WAITING;
                 std::cout<< "Planner is waiting" << std::endl;
             }
-        //}
 
     }
 }
