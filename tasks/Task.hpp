@@ -32,12 +32,12 @@ namespace path_planning {
         base::Waypoint wRover;
         base::Waypoint currentPos;
         std::vector<base::Waypoint> trajectory;
-        std::vector<short int> locVector;
         std::vector< std::vector<double> > elevationMatrix;
         std::vector< std::vector<double> > costMatrix;
         std::vector< std::vector<double> > riskMatrix;
         std::vector< std::vector<double> > soilList;
         std::vector< std::vector<double> > globalCostMatrix;
+        std::vector< terrainType* > costTable;
         PathPlanning_lib::NodeMap* map;
         PathPlanning_lib::NodeMap* localNodeMap;
         PathPlanning_lib::NodeMap* globalMap;
@@ -119,7 +119,7 @@ namespace path_planning {
         void updateHook();
 
         std::vector< std::vector<double> > readMatrixFile(std::string map_file);
-        std::vector< std::vector<double> > readTerrainFile(std::string terrain_file);
+        void readTerrainFile(std::string terrain_file, std::vector< terrainType* >& table);
 
         envire::Environment* matrix2envire(PathPlanning_lib::NodeMap * map);
 

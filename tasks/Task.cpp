@@ -48,23 +48,21 @@ bool Task::startHook()
 
     elevationMatrix = readMatrixFile(_elevationFile.get());
     costMatrix = readMatrixFile(_costFile.get());
-    soilList = readTerrainFile(_soilsFile.get());
+    //soilList = readTerrainFile(_soilsFile.get());
+    readTerrainFile(_soilsFile.get(), costTable);
 
     globalCostMatrix = readMatrixFile(_globalCostFile.get());
 
-    globalPlanner = new PathPlanning_lib::PathPlanning(GLOBAL_PLANNER);
-    localPlanner = new PathPlanning_lib::PathPlanning(LOCAL_PLANNER);
-
-    globalPlanner->initTerrainList(soilList);
-    localPlanner->initTerrainList(soilList);
+    globalPlanner = new PathPlanning_lib::PathPlanning(GLOBAL_PLANNER, costTable);
+    localPlanner = new PathPlanning_lib::PathPlanning(LOCAL_PLANNER, costTable);
 
     //double size = 0.0625;
     base::Pose2D pos;
     pos.position[0] = 0.0;
     pos.position[1] = 0.0;
     //map = new PathPlanning_lib::NodeMap(_local_res, pos, elevationMatrix, costMatrix, HIDDEN);
-    globalMap = new PathPlanning_lib::NodeMap(1.0, pos, globalCostMatrix, globalCostMatrix,OPEN);
-    map = new PathPlanning_lib::NodeMap(_local_res, pos, elevationMatrix, costMatrix, HIDDEN);
+    globalMap = new PathPlanning_lib::NodeMap(1.0, pos, elevationMatrix, globalCostMatrix,OPEN);
+    map = new PathPlanning_lib::NodeMap(_local_res, pos, costMatrix, costMatrix, HIDDEN);
     globalMap->makeNeighbourhood();
     //map->hidAll();
     /*std::cout<< "NodeMap created: " << std::endl;
@@ -79,7 +77,6 @@ bool Task::startHook()
     firstIteration = true;
     isArriving = false;
     isClose = false;
-    current_segment = 0;
 
     /*ptu_joints_commands_out.resize(2);
     ptu_joints_commands_out[0].position = 0.00;
@@ -95,28 +92,6 @@ bool Task::startHook()
 void Task::updateHook()
 {
     TaskBase::updateHook();
-
-    if (state == DEBUGGING)
-    {
-        wRover.position[0] = 29;
-	wRover.position[1] = 160;
-	wRover.position[2] = 0;
-	goalWaypoint.position[0] = 160;
-	goalWaypoint.position[1] = 110;
-	goalWaypoint.position[2] = 0;
-
-        globalPlanner->fieldDStar(wRover, goalWaypoint,trajectory,locVector, map);
-        state = END;
-    }
-
-    /*RTT::FlowStatus ret = receiveEnvireData();
-
-    if (ret == RTT::NewData)
-    {
-        RTT::log(RTT::Info) <<  "SimplePathglobalPlanner: Received new environment data" << RTT::endlog();
-        std::cout << "SimplePathglobalPlanner: Received new environment data" << std::endl;
-
-    }*/
 
     if (_goalWaypoint.read(goalWaypoint) == RTT::NewData)
     {
@@ -170,11 +145,11 @@ void Task::updateHook()
         if (calculatedGlobalWork)
         {
             LM::LocomotionMode lm;
-            int loc = (int)globalMap->getLocomotionMode(wRover.position[0],wRover.position[1]);
-            if (loc == DRIVING)
-                lm = LM::LocomotionMode::DRIVING;
-            else if (loc == WHEEL_WALKING)
-                lm = LM::LocomotionMode::WHEEL_WALKING;
+            std::string loc = globalMap->getLocomotionMode(wRover);
+            if (loc == "DRIVING")
+                lm = LM::DRIVING;
+            else if (loc == "WHEEL_WALKING")
+                lm = LM::WHEEL_WALKING;
             _locomotionMode.write(lm);
         }
         if (sqrt(pow((wRover.position[0] - goalWaypoint.position[0]),2) +
@@ -188,7 +163,7 @@ void Task::updateHook()
         if(globalMap->updateNodePower(power_update, wRover, _invert_power))
         {
             std::cout<< "Global Work Map is replanning" << std::endl;
-            globalPlanner->fastMarching(wRover,goalWaypoint,globalMap,NULL);
+            globalPlanner->fastMarching(goalWaypoint,globalMap);
             map->resetHorizonNodes(globalMap);
             state = FINDING_PATH;
         }
@@ -200,13 +175,13 @@ void Task::updateHook()
         if(globalMap->updateNodeSlip(slip_ratio, wRover))
         {
             std::cout<< "PLANNER: Global Work Map is replanning due to change of slip value" << std::endl;
-            globalPlanner->fastMarching(wRover,goalWaypoint,globalMap,NULL);
+            globalPlanner->fastMarching(goalWaypoint,globalMap);
             map->resetHorizonNodes(globalMap);
             //FOR DEBUGGING
             for(uint j = 0; j < globalMap->nodeMatrix.size(); j++)
             {
                 for(uint i = 0; i < globalMap->nodeMatrix[0].size();i++)
-                    std::cout << globalMap->nodeMatrix[j][i]->work << " ";
+                    std::cout << globalMap->nodeMatrix[j][i]->total_cost << " ";
                 std::cout << std::endl;
             }
             state = FINDING_PATH;
@@ -225,7 +200,7 @@ void Task::updateHook()
     {
         if(!calculatedGlobalWork)
         {
-            globalPlanner->fastMarching(wRover,goalWaypoint,globalMap,NULL);
+            globalPlanner->fastMarching(goalWaypoint,globalMap);
             std::cout<< "Global Work Map created" << std::endl;
             /*for(uint j = 0; j < globalMap->nodeMatrix.size(); j++)
             {
@@ -255,11 +230,10 @@ void Task::updateHook()
         }
         newVisibleArea = map->updateVisibility(wRover,globalMap,false);
         std::cout<< "New area is visible -> Replanning" << std::endl;
-        _current_segment.read(current_segment);
 
             halfTrajectory = false;
             firstIteration = false;
-            localPlanner->fastMarching(wRover,goalWaypoint,map,globalMap);
+            localPlanner->fastMarching(goalWaypoint,map,globalMap,wRover);
             if(newVisibleArea) //TODO: optimize the visualization of the workmap
             {
                 workGrid = map->getEnvirePropagation(wRover, _crop_local, _work_scale);
@@ -273,7 +247,7 @@ void Task::updateHook()
             }
             newVisibleArea = false;
 
-            isArriving = localPlanner->getPath(map, 0.5, trajectory, locVector, current_segment);
+            isArriving = localPlanner->getPath(map, 0.5, trajectory);
             std::cout<< "Trajectory has " << trajectory.size() << " Waypoints" << std::endl;
             _trajectory.write(trajectory);
 
@@ -328,42 +302,35 @@ std::vector< std::vector<double> > Task::readMatrixFile(std::string map_file)
     return mapMatrix;
 }
 
-std::vector< std::vector<double> > Task::readTerrainFile(std::string terrain_file)
+void Task::readTerrainFile(std::string terrain_file, std::vector< terrainType* >& table)
 {
-    std::cout<< "Map being loaded from: " << terrain_file << ", correct?" << std::endl;
+    std::cout<< "Extracting terrain data from: " << terrain_file << std::endl;
     std::vector< std::vector<double> > terrainList;
     std::string line;
     std::ifstream eFile(terrain_file.c_str(), std::ios::in);
-    uint numTerrains = 0, numProperties = 0;
-    std::vector <double> row;
-
+    uint numTerrains = 0;
+    std::cout << "TERRAIN - COST - LOCOMOTION"  << std::endl;
     if( eFile.is_open() )
     {
         while ( std::getline(eFile, line) ){
             std::stringstream ss(line);
             std::string cell;
-            numProperties = 0;
-            while( std::getline(ss, cell, ' ') ){
-                double val;
-                std::stringstream numericValue(cell);
-                numericValue >> val;
-                row.push_back(val);
-                numProperties++;
-            }
-            terrainList.push_back(row);
-            row.clear();
+            table.push_back(new terrainType);
+            std::getline(ss, cell, ' ');
+            std::stringstream numericValue(cell);
+            numericValue >> table.back()->cost;
+            std::getline(ss, cell, ' ');
+            table.back()->optimalLM = cell;
+            std::cout << numTerrains << " " << table.back()->cost << " "  << table.back()->optimalLM << std::endl;
             numTerrains++;
         }
         eFile.close();
         std::cout << "Terrains detected: " << numTerrains << std::endl;
-        std::cout << "Properties detected: " << numProperties << std::endl;
     }
     else
     {
         std::cout << "Problem opening the file" << std::endl;
-        return terrainList;
     }
-    return terrainList;
 }
 
 envire::Environment* Task::matrix2envire(PathPlanning_lib::NodeMap * map)
@@ -396,7 +363,7 @@ envire::Environment* Task::matrix2envire(PathPlanning_lib::NodeMap * map)
     {
         for (uint i = 0; i < map->nodeMatrix.size(); i++)
         {
-            workGrid->setTraversability(map->nodeMatrix[j][i]->work, i, j);
+            workGrid->setTraversability(map->nodeMatrix[j][i]->total_cost, i, j);
         }
     }
 
