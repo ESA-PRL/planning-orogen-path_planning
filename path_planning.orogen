@@ -39,9 +39,6 @@ task_context "Task" do
     input_port("goalWaypoint", "/base/Waypoint").
         doc "Waypoint of the desired goal"
 
-    input_port("current_segment", "int").
-        doc "indicates which segment is following the robot"
-
     input_port('traversability_map', ro_ptr('std/vector</envire/BinaryEvent>')).
         doc("Traversability map")
 
@@ -50,7 +47,7 @@ task_context "Task" do
 
     input_port("slip_ratio", "double").
         doc "Value of slip_ratio to update nearest node"
-    
+
     output_port("trajectory", "/std/vector</base/Waypoint>").
         doc "Trajectory the robot should follow"
 
