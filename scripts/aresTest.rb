@@ -14,7 +14,7 @@ ENV['LC_NUMERIC'] = 'C'
 puts "starting"
 
 Orocos.run 'simulation_vrep::Task' => 'simulation_vrep',
-           'path_planning::Task' => 'ares_planner',
+           'path_planning::Task' => 'path_planning',
            'locomotion_control::Task' => 'locomotion_control',
            'locomotion_switcher::Task' => 'locomotion_switcher',
            'wheelwalking_control::Task' => 'wheel_walking_control',
@@ -34,12 +34,11 @@ Orocos.run 'simulation_vrep::Task' => 'simulation_vrep',
 
   # setup path_planning
   puts "Setting up path_planning: path_planning"
-  path_planning = Orocos.name_service.get 'ares_planner'
-  path_planning.elevationFile = "../terrainData/decos/decos_elevationMap.txt"
-  path_planning.costFile = "../terrainData/decos/decos_localCostMap.txt"
-  path_planning.globalCostFile = "../terrainData/decos/decos_globalCostMap.txt"
-  #path_planning.riskFile = "../terrainData/prl/prl_riskMap.txt"
-  path_planning.soilsFile = "../terrainData/decos/soilList.txt"
+  path_planning = Orocos.name_service.get 'path_planning'
+  path_planning.elevationFile = "../terrainData/decos/elevationMap.txt"
+  path_planning.costFile = "../terrainData/decos/local_terrainMap.txt"
+  path_planning.globalCostFile = "../terrainData/decos/global_terrainMap.txt"
+  path_planning.soilsFile = "../terrainData/decos/terrainList.txt"
   path_planning.local_res = 0.0625
   path_planning.crop_local = true
   path_planning.configure
@@ -151,7 +150,7 @@ Orocos.run 'simulation_vrep::Task' => 'simulation_vrep',
 
   simulation_vrep.start
   sleep 1
-  #path_planning.start
+  path_planning.start
   waypoint_navigation.start
   locomotion_switcher.start
   wheel_walking_control.start
