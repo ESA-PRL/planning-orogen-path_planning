@@ -4,12 +4,16 @@
 #define PATH_PLANNING_TASK_TASK_HPP
 
 #include "path_planning/TaskBase.hpp"
-#include "../../path_planning/src/PathPlanning.hpp"
+#include <base/commands/Joints.hpp>
+#include <envire/core/Environment.hpp>
+#include <envire/maps/TraversabilityGrid.hpp>
+#include <envire/maps/ElevationGrid.hpp>
+#include <envire/operators/SimpleTraversability.hpp>
+#include "path_planning/PathPlanning.hpp"
 #include "fstream"
 
-using namespace PathPlanning_lib;
-
-namespace envire {
+namespace envire
+{
     class Environment;
     class FrameNode;
     class TraversabilityGrid;
@@ -26,25 +30,26 @@ namespace path_planning {
         PathPlanningState state;
         PathPlanning_lib::PathPlanning* globalPlanner;
         PathPlanning_lib::PathPlanning* localPlanner;
+        PathPlanning_lib::PathPlanning* planner;
         base::samples::RigidBodyState pose;
         base::Waypoint goalWaypoint;
         base::Waypoint currentGoal;
         base::Waypoint wRover;
         base::Waypoint currentPos;
+        base::commands::Joints ptu_joints_commands_out;
         std::vector<base::Waypoint> trajectory;
         std::vector< std::vector<double> > elevationMatrix;
         std::vector< std::vector<double> > costMatrix;
         std::vector< std::vector<double> > riskMatrix;
         std::vector< std::vector<double> > soilList;
         std::vector< std::vector<double> > globalCostMatrix;
-        std::vector< terrainType* > costTable;
-        PathPlanning_lib::NodeMap* map;
-        PathPlanning_lib::NodeMap* localNodeMap;
-        PathPlanning_lib::NodeMap* globalMap;
-        envire::ElevationGrid* workGrid;
+        std::vector< PathPlanning_lib::terrainType* > costTable;
+        envire::ElevationGrid* costGrid;
         envire::ElevationGrid* globalWork;
+        envire::ElevationGrid* riskGrid;
         envire::TraversabilityGrid* stateGrid;
         envire::TraversabilityGrid* globalState;
+        envire::TraversabilityGrid* localState;
         bool newVisibleArea;
         bool halfTrajectory;
         bool firstIteration;
@@ -54,6 +59,7 @@ namespace path_planning {
         int current_segment;
         double power_update;
         double slip_ratio;
+        double alpha; //This is the orientation the rover should have to face the last waypoint
 
         //base::commands::Joints ptu_joints_commands_out;
 
@@ -62,82 +68,28 @@ namespace path_planning {
         envire::Environment* mEnv;
 
     public:
-        /** TaskContext constructor for Task
-         * \param name Name of the task. This name needs to be unique to make it identifiable via nameservices.
-         * \param initial_state The initial TaskState of the TaskContext. Default is Stopped state.
-         */
+
         Task(std::string const& name = "path_planning::Task");
 
-        /** TaskContext constructor for Task
-         * \param name Name of the task. This name needs to be unique to make it identifiable for nameservices.
-         * \param engine The RTT Execution engine to be used for this task, which serialises the execution of all commands, programs, state machines and incoming events for a task.
-         *
-         */
         Task(std::string const& name, RTT::ExecutionEngine* engine);
 
-        /** Default deconstructor of Task
-         */
 	      ~Task();
 
-        /** This hook is called by Orocos when the state machine transitions
-         * from PreOperational to Stopped. If it returns false, then the
-         * component will stay in PreOperational. Otherwise, it goes into
-         * Stopped.
-         *
-         * It is meaningful only if the #needs_configuration has been specified
-         * in the task context definition with (for example):
-         \verbatim
-         task_context "TaskName" do
-           needs_configuration
-           ...
-         end
-         \endverbatim
-         */
         bool configureHook();
 
-        /** This hook is called by Orocos when the state machine transitions
-         * from Stopped to Running. If it returns false, then the component will
-         * stay in Stopped. Otherwise, it goes into Running and updateHook()
-         * will be called.
-         */
         bool startHook();
 
-        /** This hook is called by Orocos when the component is in the Running
-         * state, at each activity step. Here, the activity gives the "ticks"
-         * when the hook should be called.
-         *
-         * The error(), exception() and fatal() calls, when called in this hook,
-         * allow to get into the associated RunTimeError, Exception and
-         * FatalError states.
-         *
-         * In the first case, updateHook() is still called, and recover() allows
-         * you to go back into the Running state.  In the second case, the
-         * errorHook() will be called instead of updateHook(). In Exception, the
-         * component is stopped and recover() needs to be called before starting
-         * it again. Finally, FatalError cannot be recovered.
-         */
         void updateHook();
 
         std::vector< std::vector<double> > readMatrixFile(std::string map_file);
-        void readTerrainFile(std::string terrain_file, std::vector< terrainType* >& table);
 
-        envire::Environment* matrix2envire(PathPlanning_lib::NodeMap * map);
+        void readTerrainFile(std::string terrain_file, std::vector< PathPlanning_lib::terrainType* >& table);
 
         void errorHook();
 
-        /** This hook is called by Orocos when the state machine transitions
-         * from Running to Stopped after stop() has been called.
-         */
         void stopHook();
 
-        /** This hook is called by Orocos when the state machine transitions
-         * from Stopped to PreOperational, requiring the call to configureHook()
-         * before calling start() again.
-         */
         void cleanupHook();
-
-        RTT::FlowStatus receiveEnvireData();
-        bool extractTraversability();
     };
 }
 
