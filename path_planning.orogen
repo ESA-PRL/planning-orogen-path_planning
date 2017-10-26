@@ -29,18 +29,11 @@ task_context "Task" do
 
     property "crop_local", "bool"
 
-    property "work_scale", "double"
-
-    property "invert_power", "bool"
-
     input_port("pose", "base/samples/RigidBodyState").
         doc "Position and orientation of the Robot"
 
     input_port("goalWaypoint", "/base/Waypoint").
         doc "Waypoint of the desired goal"
-
-    input_port('traversability_map', ro_ptr('std/vector</envire/BinaryEvent>')).
-        doc("Traversability map")
 
     input_port("power_update", "double").
         doc "Value of power to update nearest node"
@@ -56,9 +49,6 @@ task_context "Task" do
 
     output_port('local_map', ro_ptr('std/vector</envire/BinaryEvent>')).
         doc "Local Envire Maps from ARES path planner"
-
-    output_port("local_states", "/std/vector< double >").
-        doc "Vector of states in local nodes"
 
     output_port('global_map', ro_ptr('std/vector</envire/BinaryEvent>')).
         doc "Global Envire Maps from ARES path planner"

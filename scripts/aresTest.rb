@@ -66,6 +66,7 @@ Orocos.run 'simulation_vrep::Task' => 'simulation_vrep',
   # setup simulation_vrep
   puts "Setting up simulation_vrep"
   simulation_vrep = Orocos.name_service.get 'simulation_vrep'
+  Orocos.conf.apply(simulation_vrep, ['exoter'], :override => true)
   simulation_vrep.configure
   puts "done"
 
