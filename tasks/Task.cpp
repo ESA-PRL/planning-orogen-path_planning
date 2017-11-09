@@ -26,10 +26,6 @@ Task::~Task()
 {
 }
 
-/// The following lines are template definitions for the various state machine
-// hooks defined by Orocos::RTT. See Task.hpp for more detailed
-// documentation about them.
-
 bool Task::configureHook()
 {
     if (! TaskBase::configureHook())
@@ -56,16 +52,8 @@ bool Task::startHook()
     base::Pose2D pos;
     pos.position[0] = 0.0;
     pos.position[1] = 0.0;
-    planner->initGlobalMap(1.0, 9, pos, elevationMatrix, globalCostMatrix);
-    //globalMap = new PathPlanning_lib::NodeMap(1.0, pos, elevationMatrix, globalCostMatrix,OPEN);
-    //map = new PathPlanning_lib::NodeMap(_local_res, pos, costMatrix, costMatrix, HIDDEN);
-    //globalMap->makeNeighbourhood();
-    //map->hidAll();
-    /*std::cout<< "NodeMap created: " << std::endl;
-    std::cout<< " - Scale: " << map->scale << std::endl;
-    std::cout<< " - Reference Frame: (" << map->globalOriginPose.position [0] << "," << map->globalOriginPose.position [1] << ")"  << std::endl;
-    std::cout<< " - Size: " << map->nodeMatrix[0].size() << "x" << map->nodeMatrix.size() << " Nodes" << std::endl;
-    std::cout<< " - Debug W: " << map->nodeMatrix[20][20]->work << std::endl;*/
+    planner->initGlobalMap(1.0, _local_res, pos, elevationMatrix, globalCostMatrix);
+
     state = FIRST_GOAL;
     halfTrajectory = false;
     newVisibleArea = false;
@@ -84,7 +72,6 @@ bool Task::startHook()
     ptu_joints_commands_out[1].speed = base::NaN<float>();
     _ptu_commands_out.write(ptu_joints_commands_out);*/
 
-    //state = DEBUGGING;
     return true;
 }
 
@@ -215,7 +202,7 @@ void Task::updateHook()
             std::cout<< "PLANNER: global map as envire map sent" << std::endl;
             calculatedGlobalWork = true;
             firstIteration = true;
-            planner->loadLocalArea(wRover);
+            planner->updateLocalMap(wRover);
             newVisibleArea = planner->simUpdateVisibility(wRover, costMatrix, _local_res, TRUE, alpha);
             localState = planner->getEnvireLocalState(wRover);
             riskGrid = planner->getEnvireRisk(wRover);
@@ -227,10 +214,9 @@ void Task::updateHook()
             emitter_tmp.setTime(base::Time::now());
             emitter_tmp.flush();
             newVisibleArea = false;
-            //DEBUGGING
-
         }
-        planner->loadLocalArea(wRover);
+
+        planner->updateLocalMap(wRover);
         newVisibleArea = planner->simUpdateVisibility(wRover, costMatrix, _local_res, FALSE, alpha);
         planner->calculateLocalPropagation(goalWaypoint,wRover);
         isArriving = planner->getPath(wRover, 0.5, trajectory);
@@ -267,41 +253,6 @@ void Task::updateHook()
             state = WAITING;
             std::cout<< "PLANNER: Planner waits for updates" << std::endl;
         }
-        /*
-        newVisibleArea = map->updateVisibility(wRover,globalMap,false);
-        std::cout<< "New area is visible -> Replanning" << std::endl;
-
-            halfTrajectory = false;
-            firstIteration = false;
-            localPlanner->fastMarching(goalWaypoint,map,globalMap,wRover);
-            if(newVisibleArea) //TODO: optimize the visualization of the workmap
-            {
-                workGrid = map->getEnvirePropagation(wRover, _crop_local, _work_scale);
-                stateGrid = map->getLocalEnvireState(wRover, _crop_local);
-                envire::Environment* localEnv = new envire::Environment();
-                localEnv->attachItem(workGrid);
-                localEnv->attachItem(stateGrid);
-                envire::OrocosEmitter emitter_tmp(localEnv, _local_map);
-                emitter_tmp.setTime(base::Time::now());
-                emitter_tmp.flush();
-            }
-            newVisibleArea = false;
-
-            isArriving = localPlanner->getPath(map, 0.5, trajectory);
-            std::cout<< "Trajectory has " << trajectory.size() << " Waypoints" << std::endl;
-            _trajectory.write(trajectory);
-
-            if((isArriving)&&(isClose))
-            {
-                state = CLOSE_TO_GOAL;
-                std::cout<< "Rover is close to the goal, no replanning" << std::endl;
-            }
-            else
-            {
-                state = WAITING;
-                std::cout<< "Planner is waiting" << std::endl;
-            }*/
-
     }
 }
 
