@@ -56,7 +56,8 @@ bool Task::startHook()
 
     state = FIRST_GOAL;
     halfTrajectory = false;
-    newVisibleArea = false;
+    //newVisibleArea = false;
+    pathNeedsRepair = false;
     calculatedGlobalWork = false;
     firstIteration = true;
     isArriving = false;
@@ -84,7 +85,7 @@ void Task::updateHook()
         if (state == FIRST_GOAL)
         {
             state = FIRST_POSE;
-            std::cout << "Goal at position (" << goalWaypoint.position[0] <<
+            std::cout << "PLANNER: New Goal at position (" << goalWaypoint.position[0] <<
                          "," << goalWaypoint.position[1] << "," <<
                          goalWaypoint.position[2] << ") with Heading " <<
                          goalWaypoint.heading << " rad" << std::endl;
@@ -96,11 +97,12 @@ void Task::updateHook()
            (goalWaypoint.position[1] != currentGoal.position[1])))
         {
             state = FINDING_PATH;
-            std::cout << "Goal at position (" << goalWaypoint.position[0] <<
+            std::cout << "PLANNER: New Goal at position (" << goalWaypoint.position[0] <<
                          "," << goalWaypoint.position[1] << "," <<
                          goalWaypoint.position[2] << ") with Heading " <<
                          goalWaypoint.heading << " rad" << std::endl;
             currentGoal = goalWaypoint;
+            calculatedGlobalWork = false;
             planner->setGoal(currentGoal);
         }
     }
@@ -189,7 +191,7 @@ void Task::updateHook()
         if(!calculatedGlobalWork)
         {
             //globalPlanner->fastMarching(goalWaypoint,globalMap);
-            planner->calculateGlobalPropagation();
+            planner->calculateGlobalPropagation(wRover);
 
             globalWork = planner->getEnvireGlobalPropagation();
             //globalState = globalMap->getGlobalEnvireState();
@@ -202,25 +204,48 @@ void Task::updateHook()
             std::cout<< "PLANNER: global map as envire map sent" << std::endl;
             calculatedGlobalWork = true;
             firstIteration = true;
+            trajectory.clear();
+            trajectory = planner->getGlobalPath(wRover,0.4);
+
             planner->updateLocalMap(wRover);
-            newVisibleArea = planner->simUpdateVisibility(wRover, costMatrix, _local_res, TRUE, alpha);
-            localState = planner->getEnvireLocalState(wRover);
-            riskGrid = planner->getEnvireRisk(wRover);
-            costGrid = planner->getLocalTotalCost(wRover);
-            envire::Environment* localEnv = new envire::Environment();
-            localEnv->attachItem(localState);
-            localEnv->attachItem(costGrid);
-            envire::OrocosEmitter emitter_tmp(localEnv, _local_map);
-            emitter_tmp.setTime(base::Time::now());
-            emitter_tmp.flush();
-            newVisibleArea = false;
+            //newVisibleArea = planner->simUpdateVisibility(wRover, costMatrix, _local_res, TRUE, alpha, trajectory);
+            pathNeedsRepair = planner->evaluateLocalMap(wRover, costMatrix, _local_res, trajectory);
+            _trajectory.write(trajectory);
+            trajectory2D = trajectory;
+            for(uint i = 0; i<trajectory2D.size(); i++)
+                trajectory2D[i].position[2] = 0;
+            _trajectory2D.write(trajectory2D);
+            //newVisibleArea = false;
+        }
+        else
+        {
+            planner->updateLocalMap(wRover);
+            pathNeedsRepair = planner->evaluateLocalMap(wRover, costMatrix, _local_res, trajectory);
+            if(pathNeedsRepair)
+            {
+                _trajectory.write(trajectory);
+                trajectory2D = trajectory;
+                for(uint i = 0; i<trajectory2D.size(); i++)
+                    trajectory2D[i].position[2] = 0;
+                _trajectory2D.write(trajectory2D);
+            }
         }
 
-        planner->updateLocalMap(wRover);
-        newVisibleArea = planner->simUpdateVisibility(wRover, costMatrix, _local_res, FALSE, alpha);
-        planner->calculateLocalPropagation(goalWaypoint,wRover);
+        localState = planner->getEnvireLocalState(wRover);
+        riskGrid = planner->getEnvireRisk(wRover);
+        costGrid = planner->getLocalTotalCost(wRover);
+        envire::Environment* localEnv = new envire::Environment();
+        localEnv->attachItem(localState);
+        localEnv->attachItem(costGrid);
+        envire::OrocosEmitter emitter_tmp(localEnv, _local_map);
+        emitter_tmp.setTime(base::Time::now());
+        emitter_tmp.flush();
+
+        //newVisibleArea = planner->simUpdateVisibility(wRover, costMatrix, _local_res, FALSE, alpha, trajectory);
+
+        /*planner->calculateLocalPropagation(goalWaypoint,wRover);
         isArriving = planner->getPath(wRover, 0.5, trajectory);
-        _trajectory.write(trajectory);
+        _trajectory.write(trajectory);*/
 
         alpha = atan2(trajectory.back().position[1]-wRover.position[1], trajectory.back().position[0]-wRover.position[0]);
         ptu_joints_commands_out[0].position = alpha - wRover.heading;
@@ -229,7 +254,7 @@ void Task::updateHook()
         ptu_joints_commands_out[1].speed = base::NaN<float>();
         _ptu_commands_out.write(ptu_joints_commands_out);
 
-        if(newVisibleArea) //TODO: optimize the visualization of the workmap
+        /*if(newVisibleArea) //TODO: optimize the visualization of the workmap
         {
             localState = planner->getEnvireLocalState(wRover);
             riskGrid = planner->getEnvireRisk(wRover);
@@ -241,7 +266,7 @@ void Task::updateHook()
             emitter_tmp.setTime(base::Time::now());
             emitter_tmp.flush();
             newVisibleArea = false;
-        }
+        }*/
 
         if((isArriving)&&(isClose))
         {

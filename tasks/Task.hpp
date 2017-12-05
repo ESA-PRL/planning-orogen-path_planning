@@ -38,6 +38,7 @@ namespace path_planning {
         base::Waypoint currentPos;
         base::commands::Joints ptu_joints_commands_out;
         std::vector<base::Waypoint> trajectory;
+        std::vector<base::Waypoint> trajectory2D;
         std::vector< std::vector<double> > elevationMatrix;
         std::vector< std::vector<double> > costMatrix;
         std::vector< std::vector<double> > riskMatrix;
@@ -50,7 +51,7 @@ namespace path_planning {
         envire::TraversabilityGrid* stateGrid;
         envire::TraversabilityGrid* globalState;
         envire::TraversabilityGrid* localState;
-        bool newVisibleArea;
+        bool pathNeedsRepair;
         bool halfTrajectory;
         bool firstIteration;
         bool calculatedGlobalWork;

@@ -44,6 +44,9 @@ task_context "Task" do
     output_port("trajectory", "/std/vector</base/Waypoint>").
         doc "Trajectory the robot should follow"
 
+    output_port("trajectory2D", "/std/vector</base/Waypoint>").
+        doc "Trajectory the robot should follow projected in the 2d plane"
+
     output_port("locomotionMode", "locomotion_switcher/LocomotionMode").
         doc "Locomotion Mode to use to arrive at each Waypoint"
 
