@@ -5,10 +5,6 @@
 
 #include "path_planning/TaskBase.hpp"
 #include <base/commands/Joints.hpp>
-#include <envire/core/Environment.hpp>
-#include <envire/maps/TraversabilityGrid.hpp>
-#include <envire/maps/ElevationGrid.hpp>
-#include <envire/operators/SimpleTraversability.hpp>
 #include "path_planning/PathPlanning.hpp"
 #include "fstream"
 
@@ -45,12 +41,10 @@ namespace path_planning {
         std::vector< std::vector<double> > soilList;
         std::vector< std::vector<double> > globalCostMatrix;
         std::vector< PathPlanning_lib::terrainType* > costTable;
-        envire::ElevationGrid* costGrid;
-        envire::ElevationGrid* globalWork;
-        envire::ElevationGrid* riskGrid;
-        envire::TraversabilityGrid* stateGrid;
-        envire::TraversabilityGrid* globalState;
-        envire::TraversabilityGrid* localState;
+        base::samples::frame::Frame traversability_map;
+        std::vector<double> slope_values;
+        std::vector<std::string> locomotion_modes;
+        std::vector<double> cost_data;
         bool pathNeedsRepair;
         bool halfTrajectory;
         bool firstIteration;
@@ -58,7 +52,6 @@ namespace path_planning {
         bool isArriving;
         bool isClose;
         int current_segment;
-        double power_update;
         double slip_ratio;
         double alpha; //This is the orientation the rover should have to face the last waypoint
 

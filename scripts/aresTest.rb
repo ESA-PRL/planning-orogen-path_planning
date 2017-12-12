@@ -41,6 +41,7 @@ Orocos.run 'simulation_vrep::Task' => 'simulation_vrep',
   path_planning.soilsFile = "../terrainData/decos/terrainList.txt"
   path_planning.local_res = 0.0625
   path_planning.crop_local = true
+  Orocos.conf.apply(path_planning, ['default'], :override => true)
   path_planning.configure
   puts "done"
   # setup exoter wheel_walking_control
@@ -105,7 +106,7 @@ Orocos.run 'simulation_vrep::Task' => 'simulation_vrep',
   puts "done"
 
   # Log all ports
-  Orocos.log_all_ports
+  #Orocos.log_all_ports
 
   simulation_vrep.pose.connect_to                      path_planning.pose
   simulation_vrep.goalWaypoint.connect_to              path_planning.goalWaypoint
