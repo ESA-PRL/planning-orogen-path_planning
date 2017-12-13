@@ -43,8 +43,12 @@ bool Task::startHook()
         std::cout << "PLANNER: slope " << i << " is " << slope_values[i] << std::endl;
     readTerrainFile(_soilsFile.get(), costTable);
     elevationMatrix = readMatrixFile(_elevationFile.get());
-    costMatrix = readMatrixFile(_costFile.get());
 
+    if (!_traversability_map.connected())
+    {
+        std::cout << "PLANNER: traversability map input is not connected, a predefined map will be used instead" << std::endl;
+        costMatrix = readMatrixFile(_costFile.get());
+    }
 
     globalCostMatrix = readMatrixFile(_globalCostFile.get());
 
@@ -63,16 +67,6 @@ bool Task::startHook()
     firstIteration = true;
     isArriving = false;
     isClose = false;
-    alpha = 0;
-
-    ptu_joints_commands_out.resize(2);
-    ptu_joints_commands_out.names[0] = "MAST_PAN";
-    ptu_joints_commands_out.names[1] = "MAST_TILT";
-    /*ptu_joints_commands_out[0].position = 1.00;
-    ptu_joints_commands_out[1].position = 0.00;
-    ptu_joints_commands_out[0].speed = base::NaN<float>();
-    ptu_joints_commands_out[1].speed = base::NaN<float>();
-    _ptu_commands_out.write(ptu_joints_commands_out);*/
 
     return true;
 }
@@ -147,7 +141,15 @@ void Task::updateHook()
 
     if(_traversability_map.read(traversability_map) == RTT::NewData)
     {
-
+        if((state == FINDING_PATH)&&(calculatedGlobalWork))
+            if(planner->evaluateLocalMap(wRover, traversability_map, _local_res, trajectory))
+            {
+                _trajectory.write(trajectory);
+                trajectory2D = trajectory;
+                for(uint i = 0; i<trajectory2D.size(); i++)
+                    trajectory2D[i].position[2] = 0;
+                _trajectory2D.write(trajectory2D);
+            }
     }
 
     if((_slip_ratio.read(slip_ratio) == RTT::NewData)&&(calculatedGlobalWork))
@@ -199,9 +201,9 @@ void Task::updateHook()
             firstIteration = true;
             trajectory.clear();
             trajectory = planner->getNewPath(wRover);
+            planner->evaluatePath(trajectory); //Evaluate if it passes through already discovered risky areas
 
             planner->updateLocalMap(wRover);
-            //newVisibleArea = planner->simUpdateVisibility(wRover, costMatrix, _local_res, TRUE, alpha, trajectory);
             pathNeedsRepair = planner->evaluateLocalMap(wRover, costMatrix, _local_res, trajectory);
             _trajectory.write(trajectory);
             trajectory2D = trajectory;
@@ -215,16 +217,16 @@ void Task::updateHook()
             _global_Cost_map.write(planner->getGlobalCostMap());
             _local_Total_Cost_map.write(planner->getLocalTotalCostMap(wRover));
             planner->updateLocalMap(wRover);
-            pathNeedsRepair = planner->evaluateLocalMap(wRover, costMatrix, _local_res, trajectory);
+            if (!_traversability_map.connected())
+                if(planner->evaluateLocalMap(wRover, costMatrix, _local_res, trajectory))
+                {
+                    _trajectory.write(trajectory);
+                    trajectory2D = trajectory;
+                    for(uint i = 0; i<trajectory2D.size(); i++)
+                        trajectory2D[i].position[2] = 0;
+                    _trajectory2D.write(trajectory2D);
+                }
             _local_Risk_map.write(planner->getLocalRiskMap(wRover));
-            if(pathNeedsRepair)
-            {
-                _trajectory.write(trajectory);
-                trajectory2D = trajectory;
-                for(uint i = 0; i<trajectory2D.size(); i++)
-                    trajectory2D[i].position[2] = 0;
-                _trajectory2D.write(trajectory2D);
-            }
         }
 
         /*localState = planner->getEnvireLocalState(wRover);
@@ -237,18 +239,10 @@ void Task::updateHook()
         emitter_tmp.setTime(base::Time::now());
         emitter_tmp.flush();*/
 
-        //newVisibleArea = planner->simUpdateVisibility(wRover, costMatrix, _local_res, FALSE, alpha, trajectory);
 
         /*planner->calculateLocalPropagation(goalWaypoint,wRover);
         isArriving = planner->getPath(wRover, 0.5, trajectory);
         _trajectory.write(trajectory);*/
-
-        alpha = atan2(trajectory.back().position[1]-wRover.position[1], trajectory.back().position[0]-wRover.position[0]);
-        ptu_joints_commands_out[0].position = alpha - wRover.heading;
-        ptu_joints_commands_out[1].position = 0.00;
-        ptu_joints_commands_out[0].speed = base::NaN<float>();
-        ptu_joints_commands_out[1].speed = base::NaN<float>();
-        _ptu_commands_out.write(ptu_joints_commands_out);
 
         /*if(newVisibleArea) //TODO: optimize the visualization of the workmap
         {

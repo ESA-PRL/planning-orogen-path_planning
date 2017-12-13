@@ -62,9 +62,6 @@ task_context "Task" do
     output_port('local_Risk_map', 'base/samples/DistanceImage').
         doc "Risk computed on local map"
 
-    output_port('ptu_commands_out', '/base/commands/Joints').
-        doc 'PTU joints commands.'
-
     output_port('actual_total_cost', 'double').
         doc 'Total Cost to arrive at destination from actual rover position'
 

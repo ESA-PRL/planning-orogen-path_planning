@@ -32,7 +32,6 @@ namespace path_planning {
         base::Waypoint currentGoal;
         base::Waypoint wRover;
         base::Waypoint currentPos;
-        base::commands::Joints ptu_joints_commands_out;
         std::vector<base::Waypoint> trajectory;
         std::vector<base::Waypoint> trajectory2D;
         std::vector< std::vector<double> > elevationMatrix;
@@ -53,9 +52,7 @@ namespace path_planning {
         bool isClose;
         int current_segment;
         double slip_ratio;
-        double alpha; //This is the orientation the rover should have to face the last waypoint
 
-        //base::commands::Joints ptu_joints_commands_out;
 
         // extracted from: rock-planning/planning-orogen-simple_path_globalPlanner
         RTT::FlowStatus mTraversabilityMapStatus;

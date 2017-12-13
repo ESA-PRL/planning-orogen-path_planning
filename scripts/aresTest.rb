@@ -118,12 +118,11 @@ Orocos.run 'simulation_vrep::Task' => 'simulation_vrep',
   simulation_vrep.joints_readings.connect_to           wheel_walking_control.joint_readings
   simulation_vrep.ptu_readings.connect_to              ptu_control.ptu_samples
 
-  #motion_translator.ptu_command.connect_to             ptu_control.ptu_joints_commands
+  motion_translator.ptu_command.connect_to             ptu_control.ptu_joints_commands
 
   path_planning.trajectory.connect_to                  simulation_vrep.trajectory
   path_planning.trajectory.connect_to	               waypoint_navigation.trajectory
   path_planning.locomotionMode.connect_to	       locomotion_switcher.locomotionMode
-  path_planning.ptu_commands_out.connect_to            ptu_control.ptu_joints_commands
 
   waypoint_navigation.current_segment.connect_to       locomotion_switcher.current_segment
   waypoint_navigation.currentWaypoint.connect_to       locomotion_switcher.currentWaypoint
