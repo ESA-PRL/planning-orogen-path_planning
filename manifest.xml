@@ -11,4 +11,5 @@
   <depend package="base/orogen/types"/>
   <depend package="orogen"/>
   <depend package="slam/orogen/envire" />
+  <depend package="control/orogen/locomotion_switcher"/>
 </package>
