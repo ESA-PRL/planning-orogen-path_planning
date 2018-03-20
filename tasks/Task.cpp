@@ -26,8 +26,8 @@ bool Task::configureHook()
 {
     if (! TaskBase::configureHook())
         return false;
-    //mTraversabilityMapStatus = RTT::NoData;
-    //mEnv = new envire::Environment();
+	
+  // Take Information relative to Cost (slope - locomotion modes - value of cost)
     slope_values = _slope_values.get();
     locomotion_modes = _locomotion_modes.get();
     cost_data = _cost_data.get();
@@ -41,7 +41,9 @@ bool Task::startHook()
 
     for(uint i = 0; i<slope_values.size(); i++)
         std::cout << "PLANNER: slope " << i << " is " << slope_values[i] << std::endl;
+	
     readTerrainFile(_soilsFile.get(), costTable);
+	
     elevationMatrix = readMatrixFile(_elevationFile.get());
 
     if (!_traversability_map.connected())
@@ -52,11 +54,16 @@ bool Task::startHook()
 
     globalCostMatrix = readMatrixFile(_globalCostFile.get());
 
-    planner = new PathPlanning_lib::PathPlanning(costTable, cost_data,slope_values,locomotion_modes);
+	
+    planner = new PathPlanning_lib::PathPlanning(costTable, cost_data, slope_values, locomotion_modes);
 
+  //pos is the global offset of the Global Map relative to World Frame
+  //TODO: set pos externally (and change its name to globalOffset maybe)
     base::Pose2D pos;
     pos.position[0] = 0.0;
     pos.position[1] = 0.0;
+	
+	
     planner->initGlobalMap(1.0, _local_res, pos, elevationMatrix, globalCostMatrix);
 
     state = FIRST_GOAL;
@@ -75,8 +82,10 @@ void Task::updateHook()
 {
     TaskBase::updateHook();
 
+  // If a new Goal Waypoint arrives
     if (_goalWaypoint.read(goalWaypoint) == RTT::NewData)
     {
+	  // Initial Case
         if (state == FIRST_GOAL)
         {
             if (planner->setGoal(goalWaypoint))
@@ -85,6 +94,8 @@ void Task::updateHook()
                 currentGoal = goalWaypoint;
             }
         }
+		
+	  // Goal Update
         if ((state == WAITING) &&
            ((goalWaypoint.position[0] != currentGoal.position[0]) ||
            (goalWaypoint.position[1] != currentGoal.position[1])))
@@ -98,6 +109,7 @@ void Task::updateHook()
         }
     }
 
+  // If a new pose of the vehicle arrives
     if (_pose.read(pose) == RTT::NewData)
     {
         wRover.position = pose.position;
@@ -123,6 +135,8 @@ void Task::updateHook()
                          wRover.heading << " rad" << std::endl;
             currentPos = wRover;
         }
+		
+		// Output best locomotion according to that pose on Global Map
         if (calculatedGlobalWork)
         {
             LM::LocomotionMode lm;
@@ -134,14 +148,20 @@ void Task::updateHook()
             _locomotionMode.write(lm);
             _actual_total_cost.write(planner->getInterpolatedCost(wRover));
         }
+		
+	  // Determine whether the rover is under a certain distance from the goal
+	  // TODO: Change 0.3 by a externally configurable parameter
         if (sqrt(pow((wRover.position[0] - goalWaypoint.position[0]),2) +
                     pow((wRover.position[1] - goalWaypoint.position[1]),2)) < 0.3)
             isClose = true;
     }
 
+	
+	
     if(_traversability_map.read(traversability_map) == RTT::NewData)
     {
-        if((state == FINDING_PATH)&&(calculatedGlobalWork))
+        //if((state == FINDING_PATH)&&(calculatedGlobalWork))
+		if(calculatedGlobalWork)
             if(planner->evaluateLocalMap(wRover, traversability_map, _local_res, trajectory))
             {
                 _trajectory.write(trajectory);
@@ -183,27 +203,28 @@ void Task::updateHook()
     {
         if(!calculatedGlobalWork)
         {
-            //globalPlanner->fastMarching(goalWaypoint,globalMap);
+		  // Case where Global Propagation is not computed because:
+		  //   - Initial Propagation
+		  //   - A new goal was set
+		  
             planner->calculateGlobalPropagation(wRover);
 
-            /*globalWork = planner->getEnvireGlobalPropagation();
-            //globalState = globalMap->getGlobalEnvireState();
-            envire::Environment* globalEnv = new envire::Environment();
-            globalEnv->attachItem(globalWork);
-            //globalEnv->attachItem(globalState);
-            envire::OrocosEmitter emitter_global(globalEnv, _global_map);
-            emitter_global.setTime(base::Time::now());
-            emitter_global.flush();*/
             _global_Total_Cost_map.write(planner->getGlobalTotalCostMap());
             _global_Cost_map.write(planner->getGlobalCostMap());
             std::cout<< "PLANNER: global map as envire map sent" << std::endl;
+			
+			
             calculatedGlobalWork = true;
             firstIteration = true;
+			
+			
             trajectory.clear();
             trajectory = planner->getNewPath(wRover);
             planner->evaluatePath(trajectory); //Evaluate if it passes through already discovered risky areas
 
-            planner->updateLocalMap(wRover);
+		  //Neighbouring Global Nodes are subdivided into Local Nodes
+            planner->expandLocalMap(wRover);
+			
             pathNeedsRepair = planner->evaluateLocalMap(wRover, costMatrix, _local_res, trajectory);
             _trajectory.write(trajectory);
             trajectory2D = trajectory;
@@ -216,7 +237,7 @@ void Task::updateHook()
         {
             _global_Cost_map.write(planner->getGlobalCostMap());
             _local_Total_Cost_map.write(planner->getLocalTotalCostMap(wRover));
-            planner->updateLocalMap(wRover);
+            planner->expandLocalMap(wRover);
             if (!_traversability_map.connected())
                 if(planner->evaluateLocalMap(wRover, costMatrix, _local_res, trajectory))
                 {
@@ -228,35 +249,6 @@ void Task::updateHook()
                 }
             _local_Risk_map.write(planner->getLocalRiskMap(wRover));
         }
-
-        /*localState = planner->getEnvireLocalState(wRover);
-        riskGrid = planner->getEnvireRisk(wRover);
-        costGrid = planner->getLocalTotalCost(wRover);
-        envire::Environment* localEnv = new envire::Environment();
-        localEnv->attachItem(localState);
-        localEnv->attachItem(costGrid);
-        envire::OrocosEmitter emitter_tmp(localEnv, _local_map);
-        emitter_tmp.setTime(base::Time::now());
-        emitter_tmp.flush();*/
-
-
-        /*planner->calculateLocalPropagation(goalWaypoint,wRover);
-        isArriving = planner->getPath(wRover, 0.5, trajectory);
-        _trajectory.write(trajectory);*/
-
-        /*if(newVisibleArea) //TODO: optimize the visualization of the workmap
-        {
-            localState = planner->getEnvireLocalState(wRover);
-            riskGrid = planner->getEnvireRisk(wRover);
-            costGrid = planner->getLocalTotalCost(wRover);
-            envire::Environment* localEnv = new envire::Environment();
-            localEnv->attachItem(localState);
-            localEnv->attachItem(costGrid);
-            envire::OrocosEmitter emitter_tmp(localEnv, _local_map);
-            emitter_tmp.setTime(base::Time::now());
-            emitter_tmp.flush();
-            newVisibleArea = false;
-        }*/
 
         if((isArriving)&&(isClose))
         {
