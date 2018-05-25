@@ -13,15 +13,11 @@ task_context "Task" do
 
     property "elevationFile", "/std/string"
 
-    property "costFile", "/std/string"
+    property "localCostFile", "/std/string"
 
     property "globalCostFile", "/std/string"
 
-    property "soilsFile", "/std/string"
-
     property "local_res", "double"
-
-    property "crop_local", "bool"
 
     property "slope_values", "/std/vector<double>"
 
@@ -49,18 +45,6 @@ task_context "Task" do
 
     output_port("locomotionMode", "locomotion_switcher/LocomotionMode").
         doc "Locomotion Mode to use to arrive at each Waypoint"
-
-    output_port('global_Total_Cost_map', 'base/samples/DistanceImage').
-        doc "Total cost computed on global map"
-
-    output_port('global_Cost_map', 'base/samples/DistanceImage').
-        doc "Nominal Cost computed on global map"
-
-    output_port('local_Total_Cost_map', 'base/samples/DistanceImage').
-        doc "Total cost computed on local map"
-
-    output_port('local_Risk_map', 'base/samples/DistanceImage').
-        doc "Risk computed on local map"
 
     output_port('actual_total_cost', 'double').
         doc 'Total Cost to arrive at destination from actual rover position'

@@ -17,15 +17,13 @@ namespace envire
 
 namespace path_planning {
 
-    enum PathPlanningState {WAITING, FIRST_GOAL, FIRST_POSE, FINDING_PATH, END, DEBUGGING, CLOSE_TO_GOAL};
+    enum PathPlanningState {BEGINNING, GLOBAL_PLANNING, PATH_COMPUTED, LOCAL_PLANNING};
 
     class Task : public TaskBase
     {
 	friend class TaskBase;
     protected:
         PathPlanningState state;
-        PathPlanning_lib::PathPlanning* globalPlanner;
-        PathPlanning_lib::PathPlanning* localPlanner;
         PathPlanning_lib::PathPlanning* planner;
         base::samples::RigidBodyState pose;
         base::Waypoint goalWaypoint;
@@ -44,10 +42,6 @@ namespace path_planning {
         std::vector<double> slope_values;
         std::vector<std::string> locomotion_modes;
         std::vector<double> cost_data;
-        bool pathNeedsRepair;
-        bool halfTrajectory;
-        bool firstIteration;
-        bool calculatedGlobalWork;
         bool isArriving;
         bool isClose;
         int current_segment;
@@ -73,8 +67,6 @@ namespace path_planning {
         void updateHook();
 
         std::vector< std::vector<double> > readMatrixFile(std::string map_file);
-
-        void readTerrainFile(std::string terrain_file, std::vector< PathPlanning_lib::terrainType* >& table);
 
         void errorHook();
 
