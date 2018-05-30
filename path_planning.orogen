@@ -25,6 +25,8 @@ task_context "Task" do
 
     property "cost_data", "/std/vector<double>"
 
+    property "keep_old_waypoints", "bool"
+
     input_port("pose", "base/samples/RigidBodyState").
         doc "Position and orientation of the Robot"
 
@@ -48,6 +50,12 @@ task_context "Task" do
 
     output_port('actual_total_cost', 'double').
         doc 'Total Cost to arrive at destination from actual rover position'
+
+    output_port('global_Total_Cost_map', 'base/samples/DistanceImage').
+        doc "Total cost computed on global map"
+
+    output_port('global_Cost_map', 'base/samples/DistanceImage').
+        doc "Nominal Cost computed on global map"
 
     periodic 1
 end

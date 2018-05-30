@@ -112,7 +112,8 @@ void Task::updateHook()
             for(uint i = 0; i<trajectory2D.size(); i++)
                 trajectory2D[i].position[2] = 0;
             _trajectory2D.write(trajectory2D);
-            //planner->evaluatePath(trajectory); //Evaluate if it passes through already discovered risky areas
+            _global_Total_Cost_map.write(planner->getGlobalTotalCostMap());
+            _global_Cost_map.write(planner->getGlobalCostMap());
             state = PATH_COMPUTED;
         }
 
@@ -135,7 +136,7 @@ void Task::updateHook()
     {
         if (!_traversability_map.connected())
         {
-            if (planner->computeLocalPlanning(wRover, costMatrix, _local_res, trajectory))
+            if (planner->computeLocalPlanning(wRover, costMatrix, _local_res, trajectory, _keep_old_waypoints))
             {
                 _trajectory.write(trajectory);
                 trajectory2D = trajectory;
@@ -146,7 +147,7 @@ void Task::updateHook()
         }
         if (_traversability_map.read(traversability_map) == RTT::NewData)
         {
-            if(planner->computeLocalPlanning(wRover, traversability_map, _local_res, trajectory))
+            if(planner->computeLocalPlanning(wRover, traversability_map, _local_res, trajectory, _keep_old_waypoints))
             {
                 _trajectory.write(trajectory);
                 trajectory2D = trajectory;
