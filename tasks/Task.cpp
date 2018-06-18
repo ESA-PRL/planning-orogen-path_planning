@@ -60,7 +60,7 @@ bool Task::startHook()
     pos.position[1] = 0.0;
 	
 	
-    planner->initGlobalMap(1.0, _local_res, pos, elevationMatrix, globalCostMatrix);
+    planner->initGlobalMap(1.0, _local_res, pos, elevationMatrix, globalCostMatrix);  //TODO: 1.0 should be a configurable parameter, maybe global_res
 
 
   // Initializing goalWaypoint and wRover
@@ -145,8 +145,9 @@ void Task::updateHook()
                 _trajectory2D.write(trajectory2D);
             }
         }
-        if (_traversability_map.read(traversability_map) == RTT::NewData)
+        else if (_traversability_map.read(traversability_map) == RTT::NewData)
         {
+            //std::cout<< "PLANNER: Starting Traversability map reading loop, period loop is set as" << TaskContext::getPeriod() << std::endl;
             if(planner->computeLocalPlanning(wRover, traversability_map, _local_res, trajectory, _keep_old_waypoints))
             {
                 _trajectory.write(trajectory);
@@ -154,7 +155,10 @@ void Task::updateHook()
                 for(uint i = 0; i<trajectory2D.size(); i++)
                     trajectory2D[i].position[2] = 0;
                 _trajectory2D.write(trajectory2D);
+                _local_Risk_map.write(planner->getLocalRiskMap(wRover));
+                _local_Propagation_map.write(planner->getLocalPropagationMap(wRover));
             }
+            //std::cout<< "PLANNER: Finishing Traversability map reading loop, period loop is set as" << TaskContext::getPeriod() << std::endl;
         }
     }
 }

@@ -57,5 +57,11 @@ task_context "Task" do
     output_port('global_Cost_map', 'base/samples/DistanceImage').
         doc "Nominal Cost computed on global map"
 
-    periodic 1
+    output_port('local_Risk_map', 'base/samples/DistanceImage').
+        doc "Risk values of local map portion"
+
+    output_port('local_Propagation_map', 'base/samples/DistanceImage').
+        doc "Local Propagation computed"
+
+    periodic 5.0
 end
