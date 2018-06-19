@@ -63,5 +63,5 @@ task_context "Task" do
     output_port('local_Propagation_map', 'base/samples/DistanceImage').
         doc "Local Propagation computed"
 
-    periodic 5.0
+    port_driven
 end
