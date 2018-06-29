@@ -31,7 +31,8 @@ bool Task::configureHook()
     slope_values = _slope_values.get();
     locomotion_modes = _locomotion_modes.get();
     cost_data = _cost_data.get();
-
+    risk_distance = _risk_distance.get();
+    reconnect_distance = _reconnect_distance.get();
     return true;
 }
 
@@ -51,7 +52,7 @@ bool Task::startHook()
     globalCostMatrix = readMatrixFile(_globalCostFile.get());
 
 	
-    planner = new PathPlanning_lib::PathPlanning(cost_data, slope_values, locomotion_modes);
+    planner = new PathPlanning_lib::PathPlanning(cost_data, slope_values, locomotion_modes, risk_distance, reconnect_distance);
 
   //pos is the global offset of the Global Map relative to World Frame
   //TODO: set pos externally (and change its name to globalOffset maybe)

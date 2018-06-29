@@ -42,6 +42,8 @@ namespace path_planning {
         std::vector<double> slope_values;
         std::vector<std::string> locomotion_modes;
         std::vector<double> cost_data;
+        double risk_distance;
+        double reconnect_distance;
         bool isArriving;
         bool isClose;
         int current_segment;

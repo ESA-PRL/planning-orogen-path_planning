@@ -27,6 +27,10 @@ task_context "Task" do
 
     property "keep_old_waypoints", "bool"
 
+    property "risk_distance", "double"
+
+    property "reconnect_distance", "double"
+
     input_port("pose", "base/samples/RigidBodyState").
         doc "Position and orientation of the Robot"
 
