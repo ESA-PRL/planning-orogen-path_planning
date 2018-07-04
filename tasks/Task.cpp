@@ -32,6 +32,7 @@ bool Task::configureHook()
     locomotion_modes = _locomotion_modes.get();
     cost_data = _cost_data.get();
     risk_distance = _risk_distance.get();
+    risk_ratio = _risk_ratio.get();
     reconnect_distance = _reconnect_distance.get();
     return true;
 }
@@ -52,7 +53,7 @@ bool Task::startHook()
     globalCostMatrix = readMatrixFile(_globalCostFile.get());
 
 	
-    planner = new PathPlanning_lib::PathPlanning(cost_data, slope_values, locomotion_modes, risk_distance, reconnect_distance);
+    planner = new PathPlanning_lib::PathPlanning(cost_data, slope_values, locomotion_modes, risk_distance, reconnect_distance, risk_ratio);
 
   //pos is the global offset of the Global Map relative to World Frame
   //TODO: set pos externally (and change its name to globalOffset maybe)
@@ -156,9 +157,10 @@ void Task::updateHook()
                 for(uint i = 0; i<trajectory2D.size(); i++)
                     trajectory2D[i].position[2] = 0;
                 _trajectory2D.write(trajectory2D);
-                _local_Risk_map.write(planner->getLocalRiskMap(wRover));
-                _local_Propagation_map.write(planner->getLocalPropagationMap(wRover));
+                
             }
+            _local_Risk_map.write(planner->getLocalRiskMap(wRover));
+            _local_Propagation_map.write(planner->getLocalPropagationMap(wRover));
             //std::cout<< "PLANNER: Finishing Traversability map reading loop, period loop is set as" << TaskContext::getPeriod() << std::endl;
         }
     }

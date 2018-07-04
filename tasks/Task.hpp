@@ -43,6 +43,7 @@ namespace path_planning {
         std::vector<std::string> locomotion_modes;
         std::vector<double> cost_data;
         double risk_distance;
+        double risk_ratio;
         double reconnect_distance;
         bool isArriving;
         bool isClose;

@@ -31,6 +31,8 @@ task_context "Task" do
 
     property "reconnect_distance", "double"
 
+    property "risk_ratio", "double"
+
     input_port("pose", "base/samples/RigidBodyState").
         doc "Position and orientation of the Robot"
 
