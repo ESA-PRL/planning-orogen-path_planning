@@ -145,7 +145,6 @@ void Task::updateHook()
                 for(uint i = 0; i<trajectory2D.size(); i++)
                     trajectory2D[i].position[2] = 0;
                 _trajectory2D.write(trajectory2D);
-                _finished_planning.write(true);
             }
         }
         else if (_traversability_map.read(traversability_map) == RTT::NewData)
@@ -158,10 +157,10 @@ void Task::updateHook()
                 for(uint i = 0; i<trajectory2D.size(); i++)
                     trajectory2D[i].position[2] = 0;
                 _trajectory2D.write(trajectory2D);
-                _finished_planning.write(true);
             }
             _local_Risk_map.write(planner->getLocalRiskMap(wRover));
             _local_Propagation_map.write(planner->getLocalPropagationMap(wRover));
+            _finished_planning.write(true);
             //std::cout<< "PLANNER: Finishing Traversability map reading loop, period loop is set as" << TaskContext::getPeriod() << std::endl;
         }
     }
