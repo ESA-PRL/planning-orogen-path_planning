@@ -8,6 +8,8 @@
 #include "path_planning/PathPlanning.hpp"
 #include "fstream"
 
+#include "base-logging/Logging.hpp"
+
 namespace envire
 {
     class Environment;

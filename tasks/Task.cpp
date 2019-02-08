@@ -46,7 +46,7 @@ bool Task::startHook()
 
     if (!_traversability_map.connected())
     {
-        std::cout << "PLANNER: traversability map input is not connected, a predefined map will be used instead" << std::endl;
+        LOG_DEBUG_S << "traversability map input is not connected, a predefined map will be used instead";
         costMatrix = readMatrixFile(_localCostFile.get());
     }
 
@@ -73,7 +73,7 @@ bool Task::startHook()
 
     state = BEGINNING;
 
-    std::cout << "PLANNER: initialization completed" << std::endl;
+    LOG_DEBUG_S << "initialization completed";
 
     return true;
 }
@@ -149,7 +149,7 @@ void Task::updateHook()
         }
         else if (_traversability_map.read(traversability_map) == RTT::NewData)
         {
-            //std::cout<< "PLANNER: Starting Traversability map reading loop, period loop is set as" << TaskContext::getPeriod() << std::endl;
+            // LOG_DEBUG_S << "Starting Traversability map reading loop, period loop is set as" << TaskContext::getPeriod();
             if(planner->computeLocalPlanning(wRover, traversability_map, _local_res, trajectory, _keep_old_waypoints))
             {
                 _trajectory.write(trajectory);
@@ -161,7 +161,7 @@ void Task::updateHook()
             _local_Risk_map.write(planner->getLocalRiskMap(wRover));
             _local_Propagation_map.write(planner->getLocalPropagationMap(wRover));
             _finished_planning.write(true);
-            //std::cout<< "PLANNER: Finishing Traversability map reading loop, period loop is set as" << TaskContext::getPeriod() << std::endl;
+            // LOG_DEBUG_S << "Finishing Traversability map reading loop, period loop is set as" << TaskContext::getPeriod();
         }
     }
 }
@@ -169,7 +169,7 @@ void Task::updateHook()
 
 std::vector< std::vector<double> > Task::readMatrixFile(std::string map_file)
 {
-    std::cout<< "PLANNER: Reading map " << map_file << std::endl;
+    LOG_DEBUG_S << "Reading map " << map_file;
     std::vector< std::vector<double> > mapMatrix;
     std::string line;
     std::ifstream eFile(map_file.c_str(), std::ios::in);
@@ -194,10 +194,10 @@ std::vector< std::vector<double> > Task::readMatrixFile(std::string map_file)
     eFile.close();
 
     Ncol /= Nrow;
-        std::cout << "PLANNER: Cost map of " << Ncol
-                  << " x "          << Nrow << " loaded." << std::endl;
+        LOG_DEBUG_S << "PLANNER: Cost map of " << Ncol
+                  << " x "          << Nrow << " loaded.";
     } else {
-        std::cout << "PLANNER: Problem opening the file" << std::endl;
+        LOG_DEBUG_S << "PLANNER: Problem opening the file";
         return mapMatrix;
     }
     return mapMatrix;
