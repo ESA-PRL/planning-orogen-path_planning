@@ -1,5 +1,3 @@
-# Generated from orogen/lib/orogen/templates/tasks/CMakeLists.txt
-
 include(path_planningTaskLib)
 ADD_LIBRARY(${PATH_PLANNING_TASKLIB_NAME} SHARED 
     ${PATH_PLANNING_TASKLIB_SOURCES})
@@ -20,4 +18,3 @@ INSTALL(TARGETS ${PATH_PLANNING_TASKLIB_NAME}
 
 INSTALL(FILES ${PATH_PLANNING_TASKLIB_HEADERS}
     DESTINATION include/orocos/path_planning)
-
