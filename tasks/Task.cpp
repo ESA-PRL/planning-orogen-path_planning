@@ -138,6 +138,7 @@ void Task::updateHook()
     {
         if (!_traversability_map.connected())
         {
+            if (!costMatrix.empty())
             if (planner->computeLocalPlanning(wRover, costMatrix, _local_res, trajectory, _keep_old_waypoints))
             {
                 _trajectory.write(trajectory);
