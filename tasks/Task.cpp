@@ -57,12 +57,6 @@ bool Task::startHook()
     pos.position[1] = 0.0;
     planner->initGlobalMap(_global_res, _local_res, pos, elevationMatrix, globalCostMatrix);  //TODO: 1.0 should be a configurable parameter, maybe global_res
 
-    planner->initGlobalMap(
-        1.0,
-        _local_res,
-        pos,
-        elevationMatrix,
-        globalCostMatrix);  // TODO: 1.0 should be a configurable parameter, maybe global_res
 
     // Initializing goalWaypoint and wRover
     goalWaypoint.position[0] = 0;
