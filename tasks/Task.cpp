@@ -132,14 +132,14 @@ void Task::updateHook()
     {
         if (!_traversability_map.connected())
         {
-            if (planner->computeLocalPlanning(
+           /* if (planner->computeLocalPlanning(
                     wRover, costMatrix, _local_res, trajectory, _keep_old_waypoints))
             {
                 _trajectory.write(trajectory);
                 trajectory2D = trajectory;
                 for (uint i = 0; i < trajectory2D.size(); i++) trajectory2D[i].position[2] = 0;
                 _trajectory2D.write(trajectory2D);
-            }
+            }*/
         }
         else if (_traversability_map.read(traversability_map) == RTT::NewData)
         {
