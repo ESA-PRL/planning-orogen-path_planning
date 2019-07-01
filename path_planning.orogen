@@ -71,6 +71,9 @@ task_context "Task" do
     output_port('local_Propagation_map', 'base/samples/DistanceImage').
         doc "Local Propagation computed"
 
+    output_port('local_computation_time', 'base/Time').
+        doc "Time spent on local repairing"
+
     output_port('finished_planning', 'bool').
         doc "signal when plan is done"
 
