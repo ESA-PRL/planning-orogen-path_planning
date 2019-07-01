@@ -2,6 +2,7 @@
 
 #include "Task.hpp"
 
+
 using namespace path_planning;
 using namespace Eigen;
 namespace LM = locomotion_switcher;
@@ -70,6 +71,11 @@ bool Task::startHook()
     currentGoal.position[1] = 0;
 
     state = BEGINNING;
+
+    // Initializing output file to write time values of local planning operations
+    localTimeFile.open("LocalTimeValues.txt");
+
+    localTimeFile << "Local Propagation Time: INIT " << "\n";
 
     LOG_DEBUG_S << "initialization completed";
 
@@ -151,15 +157,17 @@ void Task::updateHook()
             // LOG_DEBUG_S << "Starting Traversability map reading loop, period loop is set as" <<
             // TaskContext::getPeriod();
             if (planner->computeLocalPlanning(
-                    wRover, traversability_map, _local_res, trajectory, _keep_old_waypoints))
+                    wRover, traversability_map, _local_res, trajectory, _keep_old_waypoints, local_computation_time))
             {
                 _trajectory.write(trajectory);
                 trajectory2D = trajectory;
                 for (uint i = 0; i < trajectory2D.size(); i++) trajectory2D[i].position[2] = 0;
                 _trajectory2D.write(trajectory2D);
+                localTimeFile << "Local Propagation Time: " << local_computation_time.toSeconds() << "\n";
+                _local_computation_time.write(local_computation_time);
             }
-            _local_Risk_map.write(planner->getLocalRiskMap(wRover));
-            _local_Propagation_map.write(planner->getLocalPropagationMap(wRover));
+            //_local_Risk_map.write(planner->getLocalRiskMap(wRover));
+            //_local_Propagation_map.write(planner->getLocalPropagationMap(wRover));
             _finished_planning.write(true);
             // LOG_DEBUG_S << "Finishing Traversability map reading loop, period loop is set as" <<
             // TaskContext::getPeriod();
@@ -208,5 +216,9 @@ std::vector<std::vector<double>> Task::readMatrixFile(std::string map_file)
 }
 
 void Task::errorHook() { TaskBase::errorHook(); }
-void Task::stopHook() { TaskBase::stopHook(); }
+void Task::stopHook()
+{
+    TaskBase::stopHook();
+    localTimeFile.close();
+}
 void Task::cleanupHook() { TaskBase::cleanupHook(); }

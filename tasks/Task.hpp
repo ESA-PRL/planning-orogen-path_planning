@@ -3,6 +3,7 @@
 #include <base/commands/Joints.hpp>
 #include "base-logging/Logging.hpp"
 #include "fstream"
+#include "iostream"
 #include "path_planning/PathPlanning.hpp"
 #include "path_planning/TaskBase.hpp"
 
@@ -55,6 +56,8 @@ class Task : public TaskBase
     bool isClose;
     int current_segment;
     double slip_ratio;
+    base::Time local_computation_time;
+    std::ofstream localTimeFile;
 
     // extracted from: rock-planning/planning-orogen-simple_path_globalPlanner
     RTT::FlowStatus mTraversabilityMapStatus;
