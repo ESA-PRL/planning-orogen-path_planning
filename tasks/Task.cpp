@@ -143,14 +143,14 @@ void Task::updateHook()
     {
         if (!_traversability_map.connected())
         {
-            if (planner->computeLocalPlanning(
-                    wRover, costMatrix, _local_res, trajectory, _keep_old_waypoints))
-            {
-                _trajectory.write(trajectory);
-                trajectory2D = trajectory;
-                for (uint i = 0; i < trajectory2D.size(); i++) trajectory2D[i].position[2] = 0;
-                _trajectory2D.write(trajectory2D);
-            }
+            //if (planner->computeLocalPlanning(
+            //        wRover, costMatrix, _local_res, trajectory, _keep_old_waypoints))
+            //{
+            //    _trajectory.write(trajectory);
+            //    trajectory2D = trajectory;
+            //    for (uint i = 0; i < trajectory2D.size(); i++) trajectory2D[i].position[2] = 0;
+            //    _trajectory2D.write(trajectory2D);
+            //}
         }
         else if (_traversability_map.read(traversability_map) == RTT::NewData)
         {
@@ -166,8 +166,8 @@ void Task::updateHook()
                 localTimeFile << "Local Propagation Time: " << local_computation_time.toSeconds() << "\n";
                 _local_computation_time.write(local_computation_time);
             }
-            //_local_Risk_map.write(planner->getLocalRiskMap(wRover));
-            //_local_Propagation_map.write(planner->getLocalPropagationMap(wRover));
+            _local_Risk_map.write(planner->getLocalRiskMap(wRover));
+            _local_Propagation_map.write(planner->getLocalPropagationMap(wRover));
             _finished_planning.write(true);
             // LOG_DEBUG_S << "Finishing Traversability map reading loop, period loop is set as" <<
             // TaskContext::getPeriod();
