@@ -4,7 +4,7 @@
 #include "base-logging/Logging.hpp"
 #include "fstream"
 #include "iostream"
-#include "path_planning/PathPlanning.hpp"
+#include "path_planning/DyMu.hpp"
 #include "path_planning/TaskBase.hpp"
 
 namespace envire
@@ -30,8 +30,8 @@ class Task : public TaskBase
     friend class TaskBase;
 
   protected:
-    PathPlanningState state;
-    PathPlanning_lib::PathPlanning* planner;
+    PathPlanningState ppState;
+    PathPlanning_lib::DyMuPathPlanner* planner;
     base::samples::RigidBodyState pose;
     base::Waypoint goalWaypoint;
     base::Waypoint currentGoal;

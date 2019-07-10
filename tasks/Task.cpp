@@ -48,15 +48,27 @@ bool Task::startHook()
 
     globalCostMatrix = readMatrixFile(_globalCostFile.get());
 
-    planner = new PathPlanning_lib::PathPlanning(
-        cost_data, slope_values, locomotion_modes, risk_distance, reconnect_distance, risk_ratio);
+    planner = new PathPlanning_lib::DyMuPathPlanner(
+        cost_data, slope_values, locomotion_modes, risk_distance,
+        reconnect_distance, risk_ratio);
 
     // pos is the global offset of the Global Map relative to World Frame
     // TODO: set pos externally (and change its name to globalOffset maybe)
-    base::Pose2D pos;
-    pos.position[0] = 0.0;
-    pos.position[1] = 0.0;
-    planner->initGlobalMap(_global_res, _local_res, pos, elevationMatrix, globalCostMatrix);  //TODO: 1.0 should be a configurable parameter, maybe global_res
+    base::Pose2D offset;
+    offset.position[0] = 0.0;
+    offset.position[1] = 0.0;
+
+    uint map_size_X = elevationMatrix[0].size();
+    uint map_size_Y = elevationMatrix.size();
+
+    std::cout << "PLANNER_TASK: size is " << map_size_X << " x " <<
+        map_size_Y << std::endl;
+    planner->initGlobalLayer(_global_res, _local_res, map_size_X, map_size_Y,
+                             offset);
+
+    if (!planner->computeCostMap(elevationMatrix, globalCostMatrix,true))//TODO: Make this true configurable
+        std::cout << "PLANNER_TASK: size is " << map_size_X << " x " <<
+            map_size_Y << std::endl;
 
 
     // Initializing goalWaypoint and wRover
@@ -65,8 +77,7 @@ bool Task::startHook()
     currentGoal.position[0] = 0;
     currentGoal.position[1] = 0;
 
-    state = BEGINNING;
-
+    state(BEGINNING);
     // Initializing output file to write time values of local planning operations
     localTimeFile.open("LocalTimeValues.txt");
 
@@ -90,7 +101,7 @@ void Task::updateHook()
         {
             if (planner->setGoal(goalWaypoint))
             {
-                state = GLOBAL_PLANNING;
+                state(GLOBAL_PLANNING);
                 currentGoal = goalWaypoint;
             }
         }
@@ -102,24 +113,30 @@ void Task::updateHook()
         wRover.position = pose.position;
         wRover.heading = pose.getYaw();
 
-        if (state == GLOBAL_PLANNING)
+        if (state() == GLOBAL_PLANNING)
         {
-            planner->calculateGlobalPropagation(wRover);
-            trajectory.clear();
-            trajectory = planner->getNewPath(wRover);
-            _trajectory.write(trajectory);
-            trajectory2D = trajectory;
-            for (uint i = 0; i < trajectory2D.size(); i++)
+            if(planner->computeTotalCostMap(wRover))
             {
-                trajectory2D[i].position[2] = 0;
+                trajectory.clear();
+                trajectory = planner->getNewPath(wRover);
+                _trajectory.write(trajectory);
+                trajectory2D = trajectory;
+                for (uint i = 0; i < trajectory2D.size(); i++)
+                {
+                    trajectory2D[i].position[2] = 0;
+                }
+                _trajectory2D.write(trajectory2D);
+                state(PATH_COMPUTED);
             }
-            _trajectory2D.write(trajectory2D);
-            _global_Total_Cost_map.write(planner->getGlobalTotalCostMap());
-            _global_Cost_map.write(planner->getGlobalCostMap());
-            state = PATH_COMPUTED;
+            else
+            {
+                std::cout << 'Ups, something went wrong...'<< std::endl;
+                state(BEGINNING);
+            }
+
         }
 
-        if ((state == PATH_COMPUTED) || (state == LOCAL_PLANNING))
+        if ((state() == PATH_COMPUTED) || (state() == LOCAL_PLANNING))
         {
             LM::LocomotionMode lm;
             std::string loc = planner->getLocomotionMode(wRover);
@@ -134,20 +151,9 @@ void Task::updateHook()
 
     // Traversability Map
 
-    if (state == PATH_COMPUTED)
+    if (state() == PATH_COMPUTED)
     {
-        if (!_traversability_map.connected())
-        {
-           /* if (planner->computeLocalPlanning(
-                    wRover, costMatrix, _local_res, trajectory, _keep_old_waypoints))
-            {
-                _trajectory.write(trajectory);
-                trajectory2D = trajectory;
-                for (uint i = 0; i < trajectory2D.size(); i++) trajectory2D[i].position[2] = 0;
-                _trajectory2D.write(trajectory2D);
-            }*/
-        }
-        else if (_traversability_map.read(traversability_map) == RTT::NewData)
+        if (_traversability_map.read(traversability_map) == RTT::NewData)
         {
             // LOG_DEBUG_S << "Starting Traversability map reading loop, period loop is set as" <<
             // TaskContext::getPeriod();
