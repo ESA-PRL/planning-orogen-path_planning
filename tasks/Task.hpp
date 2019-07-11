@@ -17,20 +17,11 @@ class TraversabilityGrid;
 namespace path_planning
 {
 
-enum PathPlanningState
-{
-    BEGINNING,
-    GLOBAL_PLANNING,
-    PATH_COMPUTED,
-    LOCAL_PLANNING
-};
-
 class Task : public TaskBase
 {
     friend class TaskBase;
 
   protected:
-    PathPlanningState ppState;
     PathPlanning_lib::DyMuPathPlanner* planner;
     base::samples::RigidBodyState pose;
     base::Waypoint goalWaypoint;
@@ -40,10 +31,12 @@ class Task : public TaskBase
     std::vector<base::Waypoint> trajectory;
     std::vector<base::Waypoint> trajectory2D;
     std::vector<std::vector<double>> elevationMatrix;
+    std::vector<std::vector<double>> terrain_matrix;
     std::vector<std::vector<double>> costMatrix;
     std::vector<std::vector<double>> riskMatrix;
     std::vector<std::vector<double>> soilList;
-    std::vector<std::vector<double>> globalCostMatrix;
+    std::vector<std::vector<double>> global_cost_matrix;
+    std::vector< std::vector<double> > total_cost_matrix;
     std::vector<PathPlanning_lib::terrainType*> costTable;
     base::samples::frame::Frame traversability_map;
     std::vector<double> slope_values;
@@ -58,6 +51,9 @@ class Task : public TaskBase
     double slip_ratio;
     base::Time local_computation_time;
     std::ofstream localTimeFile;
+    std::ofstream total_cost_file;
+    std::ofstream global_cost_file;
+    std::ofstream path_file;
 
     // extracted from: rock-planning/planning-orogen-simple_path_globalPlanner
     RTT::FlowStatus mTraversabilityMapStatus;
@@ -74,5 +70,8 @@ class Task : public TaskBase
     void errorHook();
     void stopHook();
     void cleanupHook();
+  // Registration of numer of times Global Path Planning has been successfully
+  // executed
+    uint num_globalpp_executions;
 };
 }  // namespace path_planning

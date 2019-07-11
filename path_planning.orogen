@@ -35,6 +35,8 @@ task_context "Task" do
 
     property "risk_ratio", "double"
 
+    property "write_results", "bool"
+
     input_port("pose", "base/samples/RigidBodyState").
         doc "Position and orientation of the Robot"
 
@@ -77,7 +79,8 @@ task_context "Task" do
     output_port('finished_planning', 'bool').
         doc "signal when plan is done"
 
-    runtime_states :BEGINNING, :GLOBAL_PLANNING, :PATH_COMPUTED, :LOCAL_PLANNING
+    runtime_states :WAITING_FOR_GOAL, :WAITING_FOR_POSE, :NON_VALID_GOAL,\
+                   :NON_VALID_POSE, :UNREACHABLE_GOAL, :PATH_COMPUTED
 
     port_driven
 end

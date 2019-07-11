@@ -46,7 +46,7 @@ bool Task::startHook()
         costMatrix = readMatrixFile(_localCostFile.get());
     }
 
-    globalCostMatrix = readMatrixFile(_globalCostFile.get());
+    terrain_matrix = readMatrixFile(_globalCostFile.get());
 
     planner = new PathPlanning_lib::DyMuPathPlanner(
         cost_data, slope_values, locomotion_modes, risk_distance,
@@ -66,7 +66,7 @@ bool Task::startHook()
     planner->initGlobalLayer(_global_res, _local_res, map_size_X, map_size_Y,
                              offset);
 
-    if (!planner->computeCostMap(elevationMatrix, globalCostMatrix,true))//TODO: Make this true configurable
+    if (!planner->computeCostMap(elevationMatrix, terrain_matrix,true))//TODO: Make this true configurable
         std::cout << "PLANNER_TASK: size is " << map_size_X << " x " <<
             map_size_Y << std::endl;
 
@@ -77,13 +77,15 @@ bool Task::startHook()
     currentGoal.position[0] = 0;
     currentGoal.position[1] = 0;
 
-    state(BEGINNING);
+    state(WAITING_FOR_GOAL);
     // Initializing output file to write time values of local planning operations
     localTimeFile.open("LocalTimeValues.txt");
 
     localTimeFile << "Local Propagation Time: INIT " << "\n";
 
     LOG_DEBUG_S << "initialization completed";
+
+    num_globalpp_executions = 0;
 
     return true;
 }
@@ -95,14 +97,17 @@ void Task::updateHook()
     // Goal Waypoint
     if (_goalWaypoint.read(goalWaypoint) == RTT::NewData)
     {
-
         if ((goalWaypoint.position[0] != currentGoal.position[0])
             || (goalWaypoint.position[1] != currentGoal.position[1]))
         {
             if (planner->setGoal(goalWaypoint))
             {
-                state(GLOBAL_PLANNING);
+                state(WAITING_FOR_POSE);
                 currentGoal = goalWaypoint;
+            }
+            else
+            {
+                state(NON_VALID_GOAL);
             }
         }
     }
@@ -113,7 +118,7 @@ void Task::updateHook()
         wRover.position = pose.position;
         wRover.heading = pose.getYaw();
 
-        if (state() == GLOBAL_PLANNING)
+        if (state() == WAITING_FOR_POSE)
         {
             if(planner->computeTotalCostMap(wRover))
             {
@@ -126,17 +131,45 @@ void Task::updateHook()
                     trajectory2D[i].position[2] = 0;
                 }
                 _trajectory2D.write(trajectory2D);
+                total_cost_matrix = planner->getTotalCostMatrix();
+                global_cost_matrix = planner->getGlobalCostMatrix();
+                std::string total_cost_filename = std::string("TotalCostMap_") +
+                                       std::to_string(num_globalpp_executions) +
+                                        ".txt";
+                std::string global_cost_filename = std::string("GlobalCostMap_")
+                                       + std::to_string(num_globalpp_executions)
+                                       + ".txt";
+                std::string path_filename = std::string("Path_")
+                                       + std::to_string(num_globalpp_executions)
+                                       + ".txt";
+                total_cost_file.open(total_cost_filename);
+                global_cost_file.open(global_cost_filename);
+                path_file.open(path_filename);
+                for (uint j = 0; j < total_cost_matrix.size(); j++)
+                {
+                    for (uint i = 0; i < total_cost_matrix[0].size(); i++)
+                    {
+                        total_cost_file << total_cost_matrix[j][i] << " ";
+                        global_cost_file << global_cost_matrix[j][i] << " ";
+                    }
+                    total_cost_file << "\n";
+                    global_cost_file << "\n";
+                }
+                for (uint k = 0; k < trajectory2D.size(); k++)
+                    path_file << trajectory2D[k].position[0] << " " <<
+                                 trajectory2D[k].position[1] << "\n";
+                total_cost_file.close();
+                global_cost_file.close();
+                path_file.close();
                 state(PATH_COMPUTED);
             }
             else
             {
-                std::cout << 'Ups, something went wrong...'<< std::endl;
-                state(BEGINNING);
+                state(UNREACHABLE_GOAL);
             }
-
         }
 
-        if ((state() == PATH_COMPUTED) || (state() == LOCAL_PLANNING))
+        if (state() == PATH_COMPUTED)
         {
             LM::LocomotionMode lm;
             std::string loc = planner->getLocomotionMode(wRover);
@@ -162,7 +195,8 @@ void Task::updateHook()
             {
                 _trajectory.write(trajectory);
                 trajectory2D = trajectory;
-                for (uint i = 0; i < trajectory2D.size(); i++) trajectory2D[i].position[2] = 0;
+                for (uint i = 0; i < trajectory2D.size(); i++)
+                    trajectory2D[i].position[2] = 0;
                 _trajectory2D.write(trajectory2D);
                 localTimeFile << "Local Propagation Time: " << local_computation_time.toSeconds() << "\n";
                 _local_computation_time.write(local_computation_time);
