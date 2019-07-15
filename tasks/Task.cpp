@@ -190,6 +190,52 @@ void Task::updateHook()
 
     if (state() == PATH_COMPUTED)
     {
+        if (_set_random_travmap.read(set_travmap) == RTT::NewData)
+        {
+            if (set_travmap)
+            {
+                base::samples::frame::Frame random_trav_map;
+                uint width = 100;
+                uint height = 100;
+                random_trav_map.init(width, height);
+                for (uint j = 0; j < height; j++)
+                {
+                    for (uint i = 0; i < width; i++)
+                    {
+                        if (i < 10)
+                        {
+                            random_trav_map.image[random_trav_map.getRowSize()*j
+                            +i*random_trav_map.getPixelSize()] = 1;
+                        }
+                        else
+                        {
+                            random_trav_map.image[random_trav_map.getRowSize()*j
+                            +i*random_trav_map.getPixelSize()] = 0;
+                        }
+                    }
+                    std::cout << std::endl;
+                }
+                if (planner->computeLocalPlanning(
+                        wRover, random_trav_map, _local_res, trajectory,
+                        _keep_old_waypoints, local_computation_time))
+                {
+                    _trajectory.write(trajectory);
+                    trajectory2D = trajectory;
+                    for (uint i = 0; i < trajectory2D.size(); i++)
+                        trajectory2D[i].position[2] = 0;
+                    _trajectory2D.write(trajectory2D);
+                    if (_write_results)
+                    {
+                        localTimeFile << "Local Propagation Time: " <<
+                                         local_computation_time.toSeconds() << "\n";
+                        _local_computation_time.write(local_computation_time);
+                    }
+                }
+                //_local_Risk_map.write(planner->getLocalRiskMap(wRover));
+                //_local_Propagation_map.write(planner->getLocalPropagationMap(wRover));
+                _finished_planning.write(true);
+            }
+        }
         if (_traversability_map.read(traversability_map) == RTT::NewData)
         {
             if (planner->computeLocalPlanning(

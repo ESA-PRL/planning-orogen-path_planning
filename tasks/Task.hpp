@@ -47,6 +47,7 @@ class Task : public TaskBase
     double reconnect_distance;
     bool isArriving;
     bool isClose;
+    bool set_travmap;
     int current_segment;
     double slip_ratio;
     base::Time local_computation_time;

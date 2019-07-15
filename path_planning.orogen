@@ -49,6 +49,9 @@ task_context "Task" do
     input_port('traversability_map', 'base/samples/frame/Frame').
         doc "Map indicating traversable and nontraversable nodes"
 
+    input_port('set_random_travmap', 'bool').
+	doc "Alternative way to introduce a random traversability map manually"
+
     output_port("trajectory", "/std/vector</base/Waypoint>").
         doc "Trajectory the robot should follow"
 
