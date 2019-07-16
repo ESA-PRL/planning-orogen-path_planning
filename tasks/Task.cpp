@@ -48,8 +48,7 @@ bool Task::startHook()
 
     terrain_matrix = readMatrixFile(_globalCostFile.get());
 
-    planner = new PathPlanning_lib::DyMuPathPlanner(
-        cost_data, slope_values, locomotion_modes, risk_distance,
+    planner = new PathPlanning_lib::DyMuPathPlanner(risk_distance,
         reconnect_distance, risk_ratio);
 
     // pos is the global offset of the Global Map relative to World Frame
@@ -60,15 +59,10 @@ bool Task::startHook()
 
     uint map_size_X = elevationMatrix[0].size();
     uint map_size_Y = elevationMatrix.size();
-
-    std::cout << "PLANNER_TASK: size is " << map_size_X << " x " <<
-        map_size_Y << std::endl;
     planner->initGlobalLayer(_global_res, _local_res, map_size_X, map_size_Y,
                              offset);
-
-    if (!planner->computeCostMap(elevationMatrix, terrain_matrix,true))//TODO: Make this true configurable
-        std::cout << "PLANNER_TASK: size is " << map_size_X << " x " <<
-            map_size_Y << std::endl;
+    if (!planner->computeCostMap(cost_data, slope_values, locomotion_modes,
+                                 elevationMatrix, terrain_matrix,true))//TODO: Make this true configurable
 
 
     // Initializing goalWaypoint and wRover
@@ -85,7 +79,7 @@ bool Task::startHook()
     LOG_DEBUG_S << "initialization completed";
 
     num_globalpp_executions = 0;
-
+    num_localpp_executions = 0;
     return true;
 }
 
@@ -164,6 +158,7 @@ void Task::updateHook()
                     total_cost_file.close();
                     global_cost_file.close();
                     path_file.close();
+                    num_globalpp_executions++;
                 }
                 state(PATH_COMPUTED);
             }
@@ -199,22 +194,13 @@ void Task::updateHook()
                 uint height = 100;
                 random_trav_map.init(width, height);
                 for (uint j = 0; j < height; j++)
-                {
                     for (uint i = 0; i < width; i++)
-                    {
                         if (i < 10)
-                        {
                             random_trav_map.image[random_trav_map.getRowSize()*j
                             +i*random_trav_map.getPixelSize()] = 1;
-                        }
                         else
-                        {
                             random_trav_map.image[random_trav_map.getRowSize()*j
                             +i*random_trav_map.getPixelSize()] = 0;
-                        }
-                    }
-                    std::cout << std::endl;
-                }
                 if (planner->computeLocalPlanning(
                         wRover, random_trav_map, _local_res, trajectory,
                         _keep_old_waypoints, local_computation_time))
@@ -229,6 +215,20 @@ void Task::updateHook()
                         localTimeFile << "Local Propagation Time: " <<
                                          local_computation_time.toSeconds() << "\n";
                         _local_computation_time.write(local_computation_time);
+                        risk_matrix = planner->getRiskMatrix(wRover);
+                        std::string risk_filename =
+                                               std::string("RiskMap_") +
+                                             std::to_string(num_localpp_executions)
+                                             + ".txt";
+                        risk_file.open(risk_filename);
+                        for (uint j = 0; j < risk_matrix.size(); j++)
+                        {
+                            for (uint i = 0; i < risk_matrix[0].size(); i++)
+                                risk_file << risk_matrix[j][i] << " ";
+                            risk_file << "\n";
+                        }
+                        risk_file.close();
+                        num_localpp_executions++;
                     }
                 }
                 //_local_Risk_map.write(planner->getLocalRiskMap(wRover));
