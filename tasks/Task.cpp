@@ -126,39 +126,7 @@ void Task::updateHook()
                 _trajectory2D.write(trajectory2D);
                 if (_write_results)
                 {
-                    total_cost_matrix = planner->getTotalCostMatrix();
-                    global_cost_matrix = planner->getGlobalCostMatrix();
-                    std::string total_cost_filename =
-                                           std::string("TotalCostMap_") +
-                                         std::to_string(num_globalpp_executions)
-                                         + ".txt";
-                    std::string global_cost_filename =
-                                           std::string("GlobalCostMap_") +
-                                         std::to_string(num_globalpp_executions)
-                                         + ".txt";
-                    std::string path_filename = std::string("Path_") +
-                                         std::to_string(num_globalpp_executions)
-                                         + ".txt";
-                    total_cost_file.open(total_cost_filename);
-                    global_cost_file.open(global_cost_filename);
-                    path_file.open(path_filename);
-                    for (uint j = 0; j < total_cost_matrix.size(); j++)
-                    {
-                        for (uint i = 0; i < total_cost_matrix[0].size(); i++)
-                        {
-                            total_cost_file << total_cost_matrix[j][i] << " ";
-                            global_cost_file << global_cost_matrix[j][i] << " ";
-                        }
-                        total_cost_file << "\n";
-                        global_cost_file << "\n";
-                    }
-                    for (uint k = 0; k < trajectory2D.size(); k++)
-                        path_file << trajectory2D[k].position[0] << " " <<
-                                     trajectory2D[k].position[1] << "\n";
-                    total_cost_file.close();
-                    global_cost_file.close();
-                    path_file.close();
-                    num_globalpp_executions++;
+                    writeResults();
                 }
                 state(PATH_COMPUTED);
             }
@@ -218,7 +186,7 @@ void Task::updateHook()
                         risk_matrix = planner->getRiskMatrix(wRover);
                         std::string risk_filename =
                                                std::string("RiskMap_") +
-                                             std::to_string(num_localpp_executions)
+                                             std::to_string(num_globalpp_executions)
                                              + ".txt";
                         risk_file.open(risk_filename);
                         for (uint j = 0; j < risk_matrix.size(); j++)
@@ -228,7 +196,7 @@ void Task::updateHook()
                             risk_file << "\n";
                         }
                         risk_file.close();
-                        num_localpp_executions++;
+                        writeResults();
                     }
                 }
                 //_local_Risk_map.write(planner->getLocalRiskMap(wRover));
@@ -261,6 +229,65 @@ void Task::updateHook()
             // TaskContext::getPeriod();
         }
     }
+}
+
+void Task::writeResults()
+{
+    total_cost_matrix = planner->getTotalCostMatrix();
+    global_cost_matrix = planner->getGlobalCostMatrix();
+    hazard_density_matrix = planner->getHazardDensityMatrix();
+    trafficability_matrix = planner->getTrafficabilityMatrix();
+    std::string total_cost_filename =
+    std::string("TotalCostMap_") +
+    std::to_string(num_globalpp_executions) +
+     ".txt";
+    std::string global_cost_filename =
+                                           std::string("GlobalCostMap_") +
+                                         std::to_string(num_globalpp_executions)
+                                         + ".txt";
+    std::string hazard_density_filename =
+                                           std::string("HazardDensityMap_") +
+                                         std::to_string(num_globalpp_executions)
+                                         + ".txt";
+    std::string trafficability_filename =
+                                           std::string("TrafficabilityMap_") +
+                                         std::to_string(num_globalpp_executions)
+                                         + ".txt";
+    std::string path_filename = std::string("Path_") +
+                                         std::to_string(num_globalpp_executions)
+                                         + ".txt";
+    total_cost_file.open(total_cost_filename);
+    global_cost_file.open(global_cost_filename);
+    hazard_density_file.open(hazard_density_filename);
+    trafficability_file.open(trafficability_filename);
+    path_file.open(path_filename);
+    for (uint j = 0; j < total_cost_matrix.size(); j++)
+    {
+        for (uint i = 0; i < total_cost_matrix[0].size()-1; i++)
+        {
+            total_cost_file << total_cost_matrix[j][i] << " ";
+            global_cost_file << global_cost_matrix[j][i] << " ";
+            hazard_density_file << hazard_density_matrix[j][i] << " ";
+            trafficability_file << trafficability_matrix[j][i] << " ";
+        }
+        total_cost_file << total_cost_matrix[j][total_cost_matrix[0].size()-1];
+        global_cost_file << global_cost_matrix[j][total_cost_matrix[0].size()-1];
+        hazard_density_file << hazard_density_matrix[j][total_cost_matrix[0].size()-1];
+        trafficability_file << trafficability_matrix[j][total_cost_matrix[0].size()-1];
+        total_cost_file << "\n";
+        global_cost_file << "\n";
+        hazard_density_file << "\n";
+        trafficability_file << "\n";
+    }
+    for (uint k = 0; k < trajectory2D.size(); k++)
+        path_file << trajectory2D[k].position[0] << " " <<
+        trajectory2D[k].position[1] << "\n";
+    total_cost_file.close();
+    global_cost_file.close();
+    hazard_density_file.close();
+    trafficability_file.close();
+    path_file.close();
+    num_globalpp_executions++;
 }
 
 std::vector<std::vector<double>> Task::readMatrixFile(std::string map_file)
