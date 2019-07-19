@@ -34,6 +34,9 @@ class Task : public TaskBase
     std::vector<std::vector<double>> terrain_matrix;
     std::vector<std::vector<double>> costMatrix;
     std::vector<std::vector<double>> risk_matrix;
+    std::vector<std::vector<double>> deviation_matrix;
+    std::vector<std::vector<double>> hazard_density_matrix;
+    std::vector<std::vector<double>> trafficability_matrix;
     std::vector<std::vector<double>> soilList;
     std::vector<std::vector<double>> global_cost_matrix;
     std::vector< std::vector<double> > total_cost_matrix;
@@ -56,6 +59,9 @@ class Task : public TaskBase
     std::ofstream global_cost_file;
     std::ofstream path_file;
     std::ofstream risk_file;
+    std::ofstream deviation_file;
+    std::ofstream hazard_density_file;
+    std::ofstream trafficability_file;
 
     // extracted from: rock-planning/planning-orogen-simple_path_globalPlanner
     RTT::FlowStatus mTraversabilityMapStatus;
@@ -72,6 +78,7 @@ class Task : public TaskBase
     void errorHook();
     void stopHook();
     void cleanupHook();
+    void writeResults();
   // Registration of numer of times Global Path Planning has been successfully
   // executed
     uint num_globalpp_executions;

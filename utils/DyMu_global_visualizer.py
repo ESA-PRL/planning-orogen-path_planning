@@ -12,16 +12,16 @@ import matplotlib.pyplot as plt
 input_number = sys.argv[1]
 
 costMap = np.loadtxt(open("log/GlobalCostMap_" + str(input_number) + ".txt"), skiprows=0)
-costMap[np.where(costMap==-1)] = np.nan
+costMap[np.where(costMap==-1)] = np.amax(costMap)
 
 total_cost = np.loadtxt(open("log/TotalCostMap_" + str(input_number) + ".txt"), skiprows=0)
-total_cost[np.where(total_cost==-1)] = np.nan
+total_cost[np.where(total_cost==-1)] = np.amax(total_cost)
 
 hazard_density = np.loadtxt(open("log/HazardDensityMap_" + str(input_number) + ".txt"), skiprows=0)
-hazard_density[np.where(hazard_density==-1)] = np.nan
+hazard_density[np.where(hazard_density==-1)] = 1
 
 trafficability = np.loadtxt(open("log/TrafficabilityMap_" + str(input_number) + ".txt"), skiprows=0)
-trafficability[np.where(trafficability==-1)] = np.nan
+trafficability[np.where(trafficability==-1)] = 0
 
 path = np.loadtxt(open("log/Path_" + str(input_number) + ".txt"), skiprows=0)
 
@@ -46,12 +46,14 @@ cb2.ax.set_title('Total Cost')
 fig2, (ax3, ax4) = plt.subplots(1, 2, tight_layout=True)
 plot3 = ax3.contourf(hazard_density, 20, cmap = 'Reds')
 ax3.set_aspect('equal')
+ax3.plot(path[:,0],path[:,1],'b')
 ax3.set_xlabel('X-axis')
 ax3.set_ylabel('Y-axis')
 cb3 = fig2.colorbar(plot3, ax = ax3, orientation = 'horizontal')
 cb3.ax.set_title('Hazard Density')
 plot4 = ax4.contourf(trafficability, 20, cmap = 'Reds')
 ax4.set_aspect('equal')
+ax4.plot(path[:,0],path[:,1],'b')
 ax4.set_xlabel('X-axis')
 ax4.set_ylabel('Y-axis')
 cb4 = fig2.colorbar(plot4, ax = ax4, orientation = 'horizontal')

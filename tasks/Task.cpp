@@ -117,6 +117,7 @@ void Task::updateHook()
             {
                 trajectory.clear();
                 trajectory = planner->getNewPath(wRover);
+                planner->evaluatePath(trajectory,_keep_old_waypoints);
                 _trajectory.write(trajectory);
                 trajectory2D = trajectory;
                 for (uint i = 0; i < trajectory2D.size(); i++)
@@ -158,12 +159,18 @@ void Task::updateHook()
             if (set_travmap)
             {
                 base::samples::frame::Frame random_trav_map;
-                uint width = 100;
-                uint height = 100;
+                double width = 100;
+                double height = 100;
                 random_trav_map.init(width, height);
+                double obstacle_center_x = width/2.0 + 30.0*cos(wRover.heading);
+                double obstacle_center_y = height/2.0 - 30.0*sin(wRover.heading);
+                double obstacle_radius = 10.0;
+                std::cout << "Heading is " << wRover.heading << "rad / " << (180/3.1416*wRover.heading) << " degrees" << std::endl;
+                std::cout << "Obstacle center is at " << obstacle_center_x << "," << obstacle_center_y << std::endl;
+                std::cout << "Radius is " << obstacle_radius << std::endl;
                 for (uint j = 0; j < height; j++)
                     for (uint i = 0; i < width; i++)
-                        if (i < 10)
+                        if (sqrt(pow((float)i-obstacle_center_x,2)+pow((float)j-obstacle_center_y,2)) < obstacle_radius)
                             random_trav_map.image[random_trav_map.getRowSize()*j
                             +i*random_trav_map.getPixelSize()] = 1;
                         else
@@ -184,18 +191,29 @@ void Task::updateHook()
                                          local_computation_time.toSeconds() << "\n";
                         _local_computation_time.write(local_computation_time);
                         risk_matrix = planner->getRiskMatrix(wRover);
+                        deviation_matrix = planner->getDeviationMatrix(wRover);
                         std::string risk_filename =
                                                std::string("RiskMap_") +
                                              std::to_string(num_globalpp_executions)
                                              + ".txt";
+                        std::string deviation_filename =
+                                               std::string("DeviationMap_") +
+                                             std::to_string(num_globalpp_executions)
+                                             + ".txt";
                         risk_file.open(risk_filename);
+                        deviation_file.open(deviation_filename);
                         for (uint j = 0; j < risk_matrix.size(); j++)
                         {
                             for (uint i = 0; i < risk_matrix[0].size(); i++)
+                            {
                                 risk_file << risk_matrix[j][i] << " ";
+                                deviation_file << deviation_matrix[j][i] << " ";
+                            }
+                            deviation_file << "\n";
                             risk_file << "\n";
                         }
                         risk_file.close();
+                        deviation_file.close();
                         writeResults();
                     }
                 }
