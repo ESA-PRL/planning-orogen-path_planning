@@ -7,13 +7,6 @@
 #include "path_planning/DyMu.hpp"
 #include "path_planning/TaskBase.hpp"
 
-namespace envire
-{
-class Environment;
-class FrameNode;
-class TraversabilityGrid;
-}  // namespace envire
-
 namespace path_planning
 {
 
@@ -40,9 +33,9 @@ class Task : public TaskBase
     std::vector<std::vector<double>> soilList;
     std::vector<std::vector<double>> global_cost_matrix;
     std::vector< std::vector<double> > total_cost_matrix;
-    std::vector<PathPlanning_lib::terrainType*> costTable;
     base::samples::frame::Frame traversability_map;
     std::vector<double> slope_values;
+    std::vector<double> global_offset;
     std::vector<std::string> locomotion_modes;
     std::vector<double> cost_data;
     double risk_distance;
@@ -62,10 +55,7 @@ class Task : public TaskBase
     std::ofstream deviation_file;
     std::ofstream hazard_density_file;
     std::ofstream trafficability_file;
-
-    // extracted from: rock-planning/planning-orogen-simple_path_globalPlanner
-    RTT::FlowStatus mTraversabilityMapStatus;
-    envire::Environment* mEnv;
+    PathPlanning_lib::repairingAproach input_approach;
 
   public:
     Task(std::string const& name = "path_planning::Task");
@@ -82,6 +72,5 @@ class Task : public TaskBase
   // Registration of numer of times Global Path Planning has been successfully
   // executed
     uint num_globalpp_executions;
-    uint num_localpp_executions;
 };
 }  // namespace path_planning

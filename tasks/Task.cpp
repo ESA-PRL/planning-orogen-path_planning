@@ -7,21 +7,33 @@ using namespace path_planning;
 using namespace Eigen;
 namespace LM = locomotion_switcher;
 
-Task::Task(std::string const& name) : TaskBase(name), mEnv(NULL) {}
+/*******************************************************************************
+** TASK CONSTRUCTOR **
+*******************************************************************************/
+Task::Task(std::string const& name) : TaskBase(name){}
 
 Task::Task(std::string const& name, RTT::ExecutionEngine* engine)
-    : TaskBase(name, engine), mEnv(NULL)
+    : TaskBase(name, engine)
 {
 }
 
+
+/*******************************************************************************
+** TASK DESTRUCTOR **
+*******************************************************************************/
 Task::~Task() {}
 
+
+/*******************************************************************************
+** CONFIGURE HOOK **
+*******************************************************************************/
 bool Task::configureHook()
 {
     if (!TaskBase::configureHook()) return false;
 
-    // Take Information relative to Cost
+  // Get Configurable Parameter Values
     slope_values = _slope_values.get();
+    global_offset = _global_offset.get();
     locomotion_modes = _locomotion_modes.get();
     cost_data = _cost_data.get();
     risk_distance = _risk_distance.get();
@@ -30,64 +42,81 @@ bool Task::configureHook()
     return true;
 }
 
+
+/*******************************************************************************
+** START HOOK **
+*******************************************************************************/
 bool Task::startHook()
 {
     if (!TaskBase::startHook())
-    {
         return false;
-    }
 
+  // TODO: enable possibility to also define cost directly using a cost matrix
     elevationMatrix = readMatrixFile(_elevationFile.get());
-
-    if (!_traversability_map.connected())
-    {
-        LOG_DEBUG_S
-            << "traversability map input is not connected, a predefined map will be used instead";
-        costMatrix = readMatrixFile(_localCostFile.get());
-    }
-
     terrain_matrix = readMatrixFile(_globalCostFile.get());
-
-    planner = new PathPlanning_lib::DyMuPathPlanner(risk_distance,
-        reconnect_distance, risk_ratio);
-
-    // pos is the global offset of the Global Map relative to World Frame
-    // TODO: set pos externally (and change its name to globalOffset maybe)
-    base::Pose2D offset;
-    offset.position[0] = 0.0;
-    offset.position[1] = 0.0;
-
     uint map_size_X = elevationMatrix[0].size();
     uint map_size_Y = elevationMatrix.size();
+
+  // The repairing criteria is chosen
+    if (_keep_old_waypoints)
+        input_approach = PathPlanning_lib::CONSERVATIVE;
+    else
+        input_approach = PathPlanning_lib::SWEEPING;
+
+  // We initialize the planner introducing the relevant variables for local
+  // repairings, in case no local planning is expected, just put random values
+  // - risk_distance: max distance from obstacles considered risky
+  // - reconnect_distance: in CONSERVATIVE approach, it delimits the position
+  //   of the waypoint to reconnect, placed further than this distance to the
+  //   risky area
+  // - risk_ratio: gradient of the expanded risk, the higher the more pronounced
+  //   are the repaired paths
+  // - input_approach: the approach
+    planner = new PathPlanning_lib::DyMuPathPlanner(risk_distance,
+        reconnect_distance, risk_ratio, input_approach);
+
+  // The global layer is here initialized. It is a regular grid formed by global
+  // nodes, each of them covering a square portion of the map.
     planner->initGlobalLayer(_global_res, _local_res, map_size_X, map_size_Y,
-                             offset);
+                             global_offset);
+
+  // Cost values must be assigned to each of the global nodes. In this case, we
+  // make use of cost based on locomotion according to slope (computed from the
+  // elevation) and type of terrain
+  // Btw, do not forget here the terrain 0 is considered as obstacle (non-tra-
+  // versable)
     if (!planner->computeCostMap(cost_data, slope_values, locomotion_modes,
-                                 elevationMatrix, terrain_matrix,true))//TODO: Make this true configurable
+                                 elevationMatrix, terrain_matrix))
+        LOG_ERROR_S << "Cost Map Computation failed";
+
+  // The goal is set to the infinity (a bit improbable to reach there...)
+    goalWaypoint.position[0] = std::numeric_limits<double>::infinity();
+    goalWaypoint.position[1] = std::numeric_limits<double>::infinity();
+    currentGoal.position[0] = std::numeric_limits<double>::infinity();
+    currentGoal.position[1] = std::numeric_limits<double>::infinity();
 
 
-    // Initializing goalWaypoint and wRover
-    goalWaypoint.position[0] = 0;
-    goalWaypoint.position[1] = 0;
-    currentGoal.position[0] = 0;
-    currentGoal.position[1] = 0;
-
-    state(WAITING_FOR_GOAL);
-    // Initializing output file to write time values of local planning operations
+  // Initializing output file to write time values of local planning operations
     if (_write_results)
         localTimeFile.open("LocalTimeValues.txt");
 
-    LOG_DEBUG_S << "initialization completed";
-
     num_globalpp_executions = 0;
-    num_localpp_executions = 0;
+
+  // After everything is set up, the planner is ready for receiving the goal
+    state(WAITING_FOR_GOAL);
     return true;
 }
 
+
+/*******************************************************************************
+** UPDATE HOOK **
+*******************************************************************************/
 void Task::updateHook()
 {
     TaskBase::updateHook();
 
-    // Goal Waypoint
+  // A new Goal triggers a new path planning operation (in case its pose
+  //  is valid)
     if (_goalWaypoint.read(goalWaypoint) == RTT::NewData)
     {
         if ((goalWaypoint.position[0] != currentGoal.position[0])
@@ -99,9 +128,7 @@ void Task::updateHook()
                 currentGoal = goalWaypoint;
             }
             else
-            {
                 state(NON_VALID_GOAL);
-            }
         }
     }
 
@@ -116,8 +143,8 @@ void Task::updateHook()
             if(planner->computeTotalCostMap(wRover))
             {
                 trajectory.clear();
-                trajectory = planner->getNewPath(wRover);
-                planner->evaluatePath(trajectory,_keep_old_waypoints);
+                std::cout << "New path incoming" << std::endl;
+                trajectory = planner->getPath(wRover);
                 _trajectory.write(trajectory);
                 trajectory2D = trajectory;
                 for (uint i = 0; i < trajectory2D.size(); i++)
@@ -178,7 +205,7 @@ void Task::updateHook()
                             +i*random_trav_map.getPixelSize()] = 0;
                 if (planner->computeLocalPlanning(
                         wRover, random_trav_map, _local_res, trajectory,
-                        _keep_old_waypoints, local_computation_time))
+                        local_computation_time))
                 {
                     _trajectory.write(trajectory);
                     trajectory2D = trajectory;
@@ -226,10 +253,8 @@ void Task::updateHook()
         {
             if (planner->computeLocalPlanning(
                     wRover, traversability_map, _local_res, trajectory,
-                    _keep_old_waypoints, local_computation_time))
+                    local_computation_time))
             {
-                if (!_keep_old_waypoints)
-		    planner->evaluatePath(trajectory,_keep_old_waypoints);
                 _trajectory.write(trajectory);
                 trajectory2D = trajectory;
                 for (uint i = 0; i < trajectory2D.size(); i++)

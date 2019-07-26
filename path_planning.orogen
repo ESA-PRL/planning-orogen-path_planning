@@ -21,6 +21,8 @@ task_context "Task" do
 
     property "global_res", "double"
 
+    property "global_offset", "/std/vector<double>"
+
     property "slope_values", "/std/vector<double>"
 
     property "locomotion_modes", "/std/vector</std/string>"
