@@ -132,7 +132,8 @@ void Task::updateHook()
         }
     }
 
-    // Rover Pose
+  // Whenever a new pose is received, a path is computed if the goal has
+  // previously changed
     if (_pose.read(pose) == RTT::NewData)
     {
         wRover.position = pose.position;
@@ -153,9 +154,7 @@ void Task::updateHook()
                 }
                 _trajectory2D.write(trajectory2D);
                 if (_write_results)
-                {
-                    writeResults();
-                }
+                    writeGlobalResults();
                 state(PATH_COMPUTED);
             }
             else
@@ -177,10 +176,11 @@ void Task::updateHook()
         }
     }
 
-    // Traversability Map
-
+  // If the path is already created, a map of traversability may trigger a local
+  // path repairing
     if (state() == PATH_COMPUTED)
     {
+      // This is used for simulations
         if (_set_random_travmap.read(set_travmap) == RTT::NewData)
         {
             if (set_travmap)
@@ -192,9 +192,6 @@ void Task::updateHook()
                 double obstacle_center_x = width/2.0 + 30.0*cos(wRover.heading);
                 double obstacle_center_y = height/2.0 - 30.0*sin(wRover.heading);
                 double obstacle_radius = 10.0;
-                std::cout << "Heading is " << wRover.heading << "rad / " << (180/3.1416*wRover.heading) << " degrees" << std::endl;
-                std::cout << "Obstacle center is at " << obstacle_center_x << "," << obstacle_center_y << std::endl;
-                std::cout << "Radius is " << obstacle_radius << std::endl;
                 for (uint j = 0; j < height; j++)
                     for (uint i = 0; i < width; i++)
                         if (sqrt(pow((float)i-obstacle_center_x,2)+pow((float)j-obstacle_center_y,2)) < obstacle_radius)
@@ -214,34 +211,8 @@ void Task::updateHook()
                     _trajectory2D.write(trajectory2D);
                     if (_write_results)
                     {
-                        localTimeFile << "Local Propagation Time: " <<
-                                         local_computation_time.toSeconds() << "\n";
-                        _local_computation_time.write(local_computation_time);
-                        risk_matrix = planner->getRiskMatrix(wRover);
-                        deviation_matrix = planner->getDeviationMatrix(wRover);
-                        std::string risk_filename =
-                                               std::string("RiskMap_") +
-                                             std::to_string(num_globalpp_executions)
-                                             + ".txt";
-                        std::string deviation_filename =
-                                               std::string("DeviationMap_") +
-                                             std::to_string(num_globalpp_executions)
-                                             + ".txt";
-                        risk_file.open(risk_filename);
-                        deviation_file.open(deviation_filename);
-                        for (uint j = 0; j < risk_matrix.size(); j++)
-                        {
-                            for (uint i = 0; i < risk_matrix[0].size(); i++)
-                            {
-                                risk_file << risk_matrix[j][i] << " ";
-                                deviation_file << deviation_matrix[j][i] << " ";
-                            }
-                            deviation_file << "\n";
-                            risk_file << "\n";
-                        }
-                        risk_file.close();
-                        deviation_file.close();
-                        writeResults();
+                        writeLocalResults();
+                        writeGlobalResults();
                     }
                 }
                 //_local_Risk_map.write(planner->getLocalRiskMap(wRover));
@@ -262,34 +233,8 @@ void Task::updateHook()
                 _trajectory2D.write(trajectory2D);
                 if (_write_results)
                     {
-                        localTimeFile << "Local Propagation Time: " <<
-                                         local_computation_time.toSeconds() << "\n";
-                        _local_computation_time.write(local_computation_time);
-                        risk_matrix = planner->getRiskMatrix(wRover);
-                        deviation_matrix = planner->getDeviationMatrix(wRover);
-                        std::string risk_filename =
-                                               std::string("RiskMap_") +
-                                             std::to_string(num_globalpp_executions)
-                                             + ".txt";
-                        std::string deviation_filename =
-                                               std::string("DeviationMap_") +
-                                             std::to_string(num_globalpp_executions)
-                                             + ".txt";
-                        risk_file.open(risk_filename);
-                        deviation_file.open(deviation_filename);
-                        for (uint j = 0; j < risk_matrix.size(); j++)
-                        {
-                            for (uint i = 0; i < risk_matrix[0].size(); i++)
-                            {
-                                risk_file << risk_matrix[j][i] << " ";
-                                deviation_file << deviation_matrix[j][i] << " ";
-                            }
-                            deviation_file << "\n";
-                            risk_file << "\n";
-                        }
-                        risk_file.close();
-                        deviation_file.close();
-                        writeResults();
+                        writeLocalResults();
+                        writeGlobalResults();
                     }
             }
             //_local_Risk_map.write(planner->getLocalRiskMap(wRover));
@@ -301,7 +246,7 @@ void Task::updateHook()
     }
 }
 
-void Task::writeResults()
+void Task::writeGlobalResults()
 {
     total_cost_matrix = planner->getTotalCostMatrix();
     global_cost_matrix = planner->getGlobalCostMatrix();
@@ -398,6 +343,37 @@ std::vector<std::vector<double>> Task::readMatrixFile(std::string map_file)
         return mapMatrix;
     }
     return mapMatrix;
+}
+
+void Task::writeLocalResults()
+{
+    localTimeFile << "Local Propagation Time: " <<
+                     local_computation_time.toSeconds() << "\n";
+    _local_computation_time.write(local_computation_time);
+    risk_matrix = planner->getRiskMatrix(wRover);
+    deviation_matrix = planner->getDeviationMatrix(wRover);
+    std::string risk_filename =
+                           std::string("RiskMap_") +
+                         std::to_string(num_globalpp_executions)
+                         + ".txt";
+    std::string deviation_filename =
+                           std::string("DeviationMap_") +
+                         std::to_string(num_globalpp_executions)
+                         + ".txt";
+    risk_file.open(risk_filename);
+    deviation_file.open(deviation_filename);
+    for (uint j = 0; j < risk_matrix.size(); j++)
+    {
+        for (uint i = 0; i < risk_matrix[0].size(); i++)
+        {
+            risk_file << risk_matrix[j][i] << " ";
+            deviation_file << deviation_matrix[j][i] << " ";
+        }
+        deviation_file << "\n";
+        risk_file << "\n";
+    }
+    risk_file.close();
+    deviation_file.close();
 }
 
 void Task::errorHook() { TaskBase::errorHook(); }

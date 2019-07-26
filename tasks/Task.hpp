@@ -60,7 +60,6 @@ class Task : public TaskBase
   public:
     Task(std::string const& name = "path_planning::Task");
     Task(std::string const& name, RTT::ExecutionEngine* engine);
-    std::vector<std::vector<double>> readMatrixFile(std::string map_file);
     ~Task();
     bool configureHook();
     bool startHook();
@@ -68,7 +67,9 @@ class Task : public TaskBase
     void errorHook();
     void stopHook();
     void cleanupHook();
-    void writeResults();
+    void writeGlobalResults();
+    void writeLocalResults();
+    std::vector<std::vector<double>> readMatrixFile(std::string map_file);
   // Registration of numer of times Global Path Planning has been successfully
   // executed
     uint num_globalpp_executions;
