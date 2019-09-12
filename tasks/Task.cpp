@@ -39,6 +39,12 @@ bool Task::configureHook()
     risk_distance = _risk_distance.get();
     risk_ratio = _risk_ratio.get();
     reconnect_distance = _reconnect_distance.get();
+	num_terrains = _num_terrains.get();
+	num_criteria = _num_criteria.get();
+	weights.resize(num_criteria);
+	weights = _weights.get();	
+	feedback_data.resize(num_criteria);
+	
     return true;
 }
 
@@ -102,6 +108,10 @@ bool Task::startHook()
 
     num_globalpp_executions = 0;
 
+  // Initializing cost ratio updating method
+	if (!planner->initCoRaMethod(num_terrains, num_criteria, weights))
+		LOG_ERROR_S << "Cost ratios method initialization failed";
+
   // After everything is set up, the planner is ready for receiving the goal
     state(WAITING_FOR_GOAL);
     return true;
@@ -124,6 +134,12 @@ void Task::updateHook()
         {
             if (planner->setGoal(goalWaypoint))
             {
+			  // Updating cost map in function of previous traverses
+				cost_data = planner->updateCost();
+    			if (!planner->computeCostMap(cost_data, slope_values, locomotion_modes,
+                			                 elevationMatrix, terrain_matrix))
+        			LOG_ERROR_S << "Cost Map Computation failed";
+				
                 state(WAITING_FOR_POSE);
                 currentGoal = goalWaypoint;
             }
@@ -243,6 +259,12 @@ void Task::updateHook()
             // LOG_DEBUG_S << "Finishing Traversability map reading loop, period loop is set as" <<
             // TaskContext::getPeriod();
         }
+		if(_feedback_data.read(feedback_data) == RTT::NewData)
+		{
+			_currentPos.read(currentPos);
+			int currentTerrain = planner->getTerrain(currentPos);
+			if(!planner->fillTerrainInfo(currentTerrain,feedback_data))	LOG_ERROR_S << "Updating terrain data failed";
+		}
     }
 }
 

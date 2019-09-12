@@ -39,6 +39,12 @@ task_context "Task" do
 
     property "write_results", "bool"
 
+	property "num_terrains", "int"
+
+	property "num_criteria", "int"
+
+	property "weights", "/std/vector<double>"
+
     input_port("pose", "base/samples/RigidBodyState").
         doc "Position and orientation of the Robot"
 
@@ -52,7 +58,13 @@ task_context "Task" do
         doc "Map indicating traversable and nontraversable nodes"
 
     input_port('set_random_travmap', 'bool').
-	doc "Alternative way to introduce a random traversability map manually"
+		doc "Alternative way to introduce a random traversability map manually"
+
+	input_port('feedback_data', '/std/vector<double>').
+		doc "Feedback information to update the cost map"
+ 
+	input_port("currentPos", "/base/Waypoint").
+        doc "Current waypoint"
 
     output_port("trajectory", "/std/vector</base/Waypoint>").
         doc "Trajectory the robot should follow"

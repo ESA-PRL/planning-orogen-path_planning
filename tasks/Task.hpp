@@ -56,6 +56,10 @@ class Task : public TaskBase
     std::ofstream hazard_density_file;
     std::ofstream trafficability_file;
     PathPlanning_lib::repairingAproach input_approach;
+	int num_terrains;
+	int num_criteria;
+	std::vector<double> weights;
+	std::vector<double> feedback_data;
 
   public:
     Task(std::string const& name = "path_planning::Task");
