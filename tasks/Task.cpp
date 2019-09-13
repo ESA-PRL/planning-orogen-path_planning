@@ -128,7 +128,9 @@ void Task::updateHook()
                 currentGoal = goalWaypoint;
             }
             else
+            {
                 state(NON_VALID_GOAL);
+            }
         }
     }
 
@@ -154,7 +156,9 @@ void Task::updateHook()
                 }
                 _trajectory2D.write(trajectory2D);
                 if (_write_results)
+                {
                     writeGlobalResults();
+                }
                 state(PATH_COMPUTED);
             }
             else
