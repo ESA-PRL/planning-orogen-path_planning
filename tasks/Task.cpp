@@ -197,7 +197,7 @@ void Task::updateHook()
     if (state() == PATH_COMPUTED)
     {
       // This is used for simulations
-        if (_set_random_travmap.read(set_travmap) == RTT::NewData)
+        /*if (_set_random_travmap.read(set_travmap) == RTT::NewData)
         {
             if (set_travmap)
             {
@@ -235,7 +235,7 @@ void Task::updateHook()
                 //_local_Propagation_map.write(planner->getLocalPropagationMap(wRover));
                 _finished_planning.write(true);
             }
-        }
+        }*/
         if (_traversability_map.read(traversability_map) == RTT::NewData)
         {
             if (planner->computeLocalPlanning(
@@ -263,6 +263,8 @@ void Task::updateHook()
 		{
 			_currentPos.read(currentPos);
 			int currentTerrain = planner->getTerrain(currentPos);
+			std::cout << "Traversing terrain number: "<< currentTerrain+1 << std::endl;
+
 			if(!planner->fillTerrainInfo(currentTerrain,feedback_data))	LOG_ERROR_S << "Updating terrain data failed";
 		}
     }
