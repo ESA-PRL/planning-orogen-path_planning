@@ -263,8 +263,9 @@ void Task::updateHook()
 		{
 			_currentPos.read(currentPos);
 			int currentTerrain = planner->getTerrain(currentPos);
-			std::cout << "Traversing terrain number: "<< currentTerrain+1 << std::endl;
-
+			if(currentTerrain != previousTerrain) 
+				std::cout <<  "\033[1;34mTraversing terrain number: "<< currentTerrain+1 << "\033[0m"<<std::endl;
+			previousTerrain = currentTerrain;
 			if(!planner->fillTerrainInfo(currentTerrain,feedback_data))	LOG_ERROR_S << "Updating terrain data failed";
 		}
     }
