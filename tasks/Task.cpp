@@ -135,10 +135,22 @@ void Task::updateHook()
             if (planner->setGoal(goalWaypoint))
             {
 			  // Updating cost map in function of previous traverses
-				cost_data = planner->updateCost();
-    			if (!planner->computeCostMap(cost_data, slope_values, locomotion_modes,
-                			                 elevationMatrix, terrain_matrix))
-        			LOG_ERROR_S << "Cost Map Computation failed";
+				std::vector<double> cost = planner->updateCost();
+				if(cost_data != cost)
+				{
+					cost_data = cost;
+					std::cout << "\033[1;34mCosts updated, new cost vector: ";
+					for(int i = 0; i < num_terrains; i++)
+					{
+						std::cout<<std::endl;   
+						for(int j = 0; j < slope_values.size(); j++)
+							std::cout << cost_data[(i+1)*slope_values.size()*locomotion_modes.size() + j]<<" "; 
+					}
+					std::cout << "\033[0m"<<std::endl;
+					if (!planner->computeCostMap(cost_data, slope_values, locomotion_modes,
+												 elevationMatrix, terrain_matrix))
+						LOG_ERROR_S << "Cost Map Computation failed";
+				}
 				
                 state(WAITING_FOR_POSE);
                 currentGoal = goalWaypoint;
@@ -197,7 +209,7 @@ void Task::updateHook()
     if (state() == PATH_COMPUTED)
     {
       // This is used for simulations
-        /*if (_set_random_travmap.read(set_travmap) == RTT::NewData)
+        if (_set_random_travmap.read(set_travmap) == RTT::NewData)
         {
             if (set_travmap)
             {
@@ -235,7 +247,7 @@ void Task::updateHook()
                 //_local_Propagation_map.write(planner->getLocalPropagationMap(wRover));
                 _finished_planning.write(true);
             }
-        }*/
+        }
         if (_traversability_map.read(traversability_map) == RTT::NewData)
         {
             if (planner->computeLocalPlanning(
