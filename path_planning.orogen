@@ -63,7 +63,7 @@ task_context "Task" do
 	input_port('feedback_data', '/std/vector<double>').
 		doc "Feedback information to update the cost map"
  
-	input_port("currentPos", "/base/Waypoint").
+	input_port("current_pos", "/base/Waypoint").
         doc "Current waypoint"
 
     output_port("trajectory", "/std/vector</base/Waypoint>").
