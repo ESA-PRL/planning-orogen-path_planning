@@ -145,6 +145,7 @@ void Task::updateHook()
                                                  terrain_matrix))
                         LOG_ERROR_S << "Cost Map Computation failed";
                 }
+                _reconnecting_index.write(-1);
 
                 state(WAITING_FOR_POSE);
                 currentGoal = goalWaypoint;
@@ -227,6 +228,7 @@ void Task::updateHook()
                         wRover, random_trav_map, _local_res, trajectory, local_computation_time))
                 {
                     _trajectory.write(trajectory);
+                    _reconnecting_index.write(planner->getReconnectingIndex());
                     trajectory2D = trajectory;
                     for (uint i = 0; i < trajectory2D.size(); i++) trajectory2D[i].position[2] = 0;
                     _trajectory2D.write(trajectory2D);
@@ -247,6 +249,7 @@ void Task::updateHook()
                     wRover, traversability_map, _local_res, trajectory, local_computation_time))
             {
                 _trajectory.write(trajectory);
+                _reconnecting_index.write(planner->getReconnectingIndex());
                 trajectory2D = trajectory;
                 for (uint i = 0; i < trajectory2D.size(); i++) trajectory2D[i].position[2] = 0;
                 _trajectory2D.write(trajectory2D);
@@ -263,16 +266,23 @@ void Task::updateHook()
             // is set as" <<
             // TaskContext::getPeriod();
         }
-        if (_feedback_data.read(feedback_data) == RTT::NewData)
+
+        if (_pose.read(pose) != RTT::NoData)
         {
-            _current_pos.read(current_pos);
-            int current_terrain = planner->getTerrain(current_pos);
+            int current_terrain = planner->getTerrain(pose);
             if (current_terrain != previous_terrain)
+            {
                 std::cout << "\033[1;34mTraversing terrain number: " << current_terrain + 1
                           << "\033[0m" << std::endl;
+                _current_terrain.write(current_terrain);
+            }
             previous_terrain = current_terrain;
-            if (!planner->fillTerrainInfo(current_terrain, feedback_data))
-                LOG_ERROR_S << "Updating terrain data failed";
+
+            if (_feedback_data.read(feedback_data) == RTT::NewData)
+            {
+                if (!planner->fillTerrainInfo(current_terrain, feedback_data))
+                    LOG_ERROR_S << "Updating terrain data failed";
+            }
         }
     }
 }

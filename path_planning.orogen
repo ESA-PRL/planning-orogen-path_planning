@@ -63,9 +63,6 @@ task_context "Task" do
 	input_port('feedback_data', '/std/vector<double>').
 		doc "Feedback information to update the cost map"
  
-	input_port("current_pos", "/base/Waypoint").
-        doc "Current waypoint"
-
     output_port("trajectory", "/std/vector</base/Waypoint>").
         doc "Trajectory the robot should follow"
 
@@ -95,6 +92,12 @@ task_context "Task" do
 
     output_port('finished_planning', 'bool').
         doc "signal when plan is done"
+    
+    output_port('reconnecting_index', 'int').
+        doc "Index of the waypoint where the local path reconnects"
+
+    output_port('current_terrain', 'int').
+        doc "Index of the terrain currently being traversed"
 
     runtime_states :WAITING_FOR_GOAL, :WAITING_FOR_POSE, :NON_VALID_GOAL,\
                    :NON_VALID_POSE, :UNREACHABLE_GOAL, :PATH_COMPUTED
