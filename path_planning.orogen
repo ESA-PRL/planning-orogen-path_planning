@@ -39,8 +39,6 @@ task_context "Task" do
 
     property "write_results", "bool"
 
-	property "num_terrains", "int"
-
 	property "num_criteria", "int"
 
 	property "weights", "/std/vector<double>"
