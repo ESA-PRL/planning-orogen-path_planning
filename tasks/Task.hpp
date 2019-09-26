@@ -60,7 +60,7 @@ class Task : public TaskBase
     int num_criteria;
     std::vector<double> weights;
     std::vector<double> feedback_data;
-    int previous_terrain = -1;
+    int previous_terrain;
 
   public:
     Task(std::string const& name = "path_planning::Task");

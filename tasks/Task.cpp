@@ -33,11 +33,14 @@ bool Task::configureHook()
     risk_distance = _risk_distance.get();
     risk_ratio = _risk_ratio.get();
     reconnect_distance = _reconnect_distance.get();
+
+    // Update costs algorithm configuration
     num_terrains = cost_data.size() / slope_values.size() - 1;
     num_criteria = _num_criteria.get();
     weights.resize(num_criteria);
     weights = _weights.get();
     feedback_data.resize(num_criteria);
+    previous_terrain = -1;
 
     return true;
 }
