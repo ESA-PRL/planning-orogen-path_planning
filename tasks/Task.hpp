@@ -20,7 +20,7 @@ class Task : public TaskBase
     base::Waypoint goalWaypoint;
     base::Waypoint currentGoal;
     base::Waypoint wRover;
-    base::Waypoint currentPos;
+    base::Waypoint current_pos;
     std::vector<base::Waypoint> trajectory;
     std::vector<base::Waypoint> trajectory2D;
     std::vector<std::vector<double>> elevationMatrix;
@@ -56,6 +56,11 @@ class Task : public TaskBase
     std::ofstream hazard_density_file;
     std::ofstream trafficability_file;
     PathPlanning_lib::repairingAproach input_approach;
+    int num_terrains;
+    int num_criteria;
+    std::vector<double> weights;
+    std::vector<double> feedback_data;
+    int previous_terrain;
 
   public:
     Task(std::string const& name = "path_planning::Task");

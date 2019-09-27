@@ -33,6 +33,15 @@ bool Task::configureHook()
     risk_distance = _risk_distance.get();
     risk_ratio = _risk_ratio.get();
     reconnect_distance = _reconnect_distance.get();
+
+    // Update costs algorithm configuration
+    num_terrains = cost_data.size() / slope_values.size() - 1;
+    num_criteria = _num_criteria.get();
+    weights.resize(num_criteria);
+    weights = _weights.get();
+    feedback_data.resize(num_criteria);
+    previous_terrain = -1;
+
     return true;
 }
 
@@ -91,6 +100,10 @@ bool Task::startHook()
 
     num_globalpp_executions = 0;
 
+    // Initializing cost ratio updating method
+    if (!planner->initCoRaMethod(num_terrains, num_criteria, weights))
+        LOG_ERROR_S << "Cost ratios method initialization failed";
+
     // After everything is set up, the planner is ready for receiving the goal
     state(WAITING_FOR_GOAL);
     return true;
@@ -112,6 +125,31 @@ void Task::updateHook()
         {
             if (planner->setGoal(goalWaypoint))
             {
+                // Updating cost map in function of previous traverses
+                std::vector<double> cost = planner->updateCost();
+                if (cost_data != cost)
+                {
+                    cost_data = cost;
+                    std::cout << "\033[1;34mCosts updated, new cost vector: ";
+                    for (int i = 0; i < num_terrains; i++)
+                    {
+                        std::cout << std::endl;
+                        for (int j = 0; j < slope_values.size(); j++)
+                            std::cout
+                                << cost_data[(i + 1) * slope_values.size() * locomotion_modes.size()
+                                             + j]
+                                << " ";
+                    }
+                    std::cout << "\033[0m" << std::endl;
+                    if (!planner->computeCostMap(cost_data,
+                                                 slope_values,
+                                                 locomotion_modes,
+                                                 elevationMatrix,
+                                                 terrain_matrix))
+                        LOG_ERROR_S << "Cost Map Computation failed";
+                }
+                _reconnecting_index.write(-1);
+
                 state(WAITING_FOR_POSE);
                 currentGoal = goalWaypoint;
             }
@@ -198,6 +236,7 @@ void Task::updateHook()
                         wRover, random_trav_map, _local_res, trajectory, local_computation_time))
                 {
                     _trajectory.write(trajectory);
+                    _reconnecting_index.write(planner->getReconnectingIndex());
                     trajectory2D = trajectory;
                     for (uint i = 0; i < trajectory2D.size(); i++) trajectory2D[i].position[2] = 0;
                     _trajectory2D.write(trajectory2D);
@@ -218,6 +257,7 @@ void Task::updateHook()
                     wRover, traversability_map, _local_res, trajectory, local_computation_time))
             {
                 _trajectory.write(trajectory);
+                _reconnecting_index.write(planner->getReconnectingIndex());
                 trajectory2D = trajectory;
                 for (uint i = 0; i < trajectory2D.size(); i++) trajectory2D[i].position[2] = 0;
                 _trajectory2D.write(trajectory2D);
@@ -230,8 +270,27 @@ void Task::updateHook()
             //_local_Risk_map.write(planner->getLocalRiskMap(wRover));
             //_local_Propagation_map.write(planner->getLocalPropagationMap(wRover));
             _finished_planning.write(true);
-            // LOG_DEBUG_S << "Finishing Traversability map reading loop, period loop is set as" <<
+            // LOG_DEBUG_S << "Finishing Traversability map reading loop, period loop
+            // is set as" <<
             // TaskContext::getPeriod();
+        }
+
+        if (_pose.read(pose) != RTT::NoData)
+        {
+            int current_terrain = planner->getTerrain(pose);
+            if (current_terrain != previous_terrain)
+            {
+                std::cout << "\033[1;34mTraversing terrain number: " << current_terrain + 1
+                          << "\033[0m" << std::endl;
+                _current_terrain.write(current_terrain);
+            }
+            previous_terrain = current_terrain;
+
+            if (_feedback_data.read(feedback_data) == RTT::NewData)
+            {
+                if (!planner->fillTerrainInfo(current_terrain, feedback_data))
+                    LOG_ERROR_S << "Updating terrain data failed";
+            }
         }
     }
 }
