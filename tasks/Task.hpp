@@ -32,7 +32,7 @@ class Task : public TaskBase
     std::vector<std::vector<double>> trafficability_matrix;
     std::vector<std::vector<double>> soilList;
     std::vector<std::vector<double>> global_cost_matrix;
-    std::vector< std::vector<double> > total_cost_matrix;
+    std::vector<std::vector<double>> total_cost_matrix;
     base::samples::frame::Frame traversability_map;
     std::vector<double> slope_values;
     std::vector<double> global_offset;
@@ -70,8 +70,8 @@ class Task : public TaskBase
     void writeGlobalResults();
     void writeLocalResults();
     std::vector<std::vector<double>> readMatrixFile(std::string map_file);
-  // Registration of numer of times Global Path Planning has been successfully
-  // executed
+    // Registration of numer of times Global Path Planning has been successfully
+    // executed
     uint num_globalpp_executions;
 };
 }  // namespace path_planning
