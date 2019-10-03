@@ -228,7 +228,7 @@ void Task::updateHook()
                                  + pow((float)j - obstacle_center_y, 2))
                             < obstacle_radius)
                             random_trav_map.image[random_trav_map.getRowSize() * j
-                                                  + i * random_trav_map.getPixelSize()] = 1;
+                                                  + i * random_trav_map.getPixelSize()] = 255;
                         else
                             random_trav_map.image[random_trav_map.getRowSize() * j
                                                   + i * random_trav_map.getPixelSize()] = 0;
